@@ -1,0 +1,58 @@
+pipeline {
+    environment {
+      registry = "tanguangbin1980/test"
+      registryCredential = 'dockerhub'
+    }
+    agent any
+    tools {
+        maven 'mvn' // 使用之前配置的 Maven
+    }
+    stages {
+        stage('Clone Repository') {
+            steps {
+                git branch: 'main', url: 'https://github.com/tanguangbin/git-jenkins-pipeline-project.git'
+            }
+        }
+        stage('Build with Maven') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh 'ls'
+                    docker.build registry + ":$BUILD_NUMBER"
+                }
+            }
+        }
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry( '', registryCredential ) {
+                      dockerImage.push()
+                    }
+                }
+            }
+        }
+        // stage('Update k8s YAML') {
+        //     steps {
+        //         script {
+        //             def imageTag = "${env.BUILD_ID}"
+        //             def imageName = "your-dockerhub-username/your-app:${imageTag}"
+
+        //             sh """
+        //             sed -i 's|IMAGE_PLACEHOLDER|${imageName}|g' k8s-deployment.yaml
+        //             """
+        //         }
+        //     }
+        // }
+        // stage('Push Updated k8s YAML') {
+        //     steps {
+        //         sh 'git add k8s-deployment.yaml'
+        //         sh 'git commit -m "Update k8s deployment yaml with new image tag"'
+        //         sh 'git push origin main'
+        //     }
+        // }
+    }
+}
