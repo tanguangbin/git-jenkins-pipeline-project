@@ -118,15 +118,29 @@ pipeline {
         stage('Update Deployment File') {
             steps {
                 withCredentials([string(credentialsId: "${GITHUB_CREDENTIALS_ID}", variable: 'GITHUB_TOKEN')]) {
-                    sh '''
-                        git config user.email "test@gmail.com"
-                        git config user.name "Andy Tan"
-                        BUILD_NUMBER=${BUILD_NUMBER}
+//                     sh '''
+//                         git config user.email "test@gmail.com"
+//                         git config user.name "Andy Tan"
+//                         BUILD_NUMBER=${BUILD_NUMBER}
+//
+//                         git add k8s-deployment.yaml
+//                         git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+//                         git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${params.ENVIRONMENT}
+//                     '''
+                        sh '''
+                            #!/bin/bash
+                            git config user.email "test@gmail.com"
+                            git config user.name "Andy Tan"
 
-                        git add k8s-deployment.yaml
-                        git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-                        git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${params.ENVIRONMENT}
-                    '''
+                            if [ -n "$(git status --porcelain)" ]; then
+                                git add k8s-deployment.yaml
+                                git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+                                git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${params.ENVIRONMENT}
+                            else
+                                echo "No changes to commit"
+                            fi
+                        '''
+
                 }
             }
         }
