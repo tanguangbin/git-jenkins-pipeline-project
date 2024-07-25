@@ -34,8 +34,8 @@ pipeline {
             steps {
                 script {
                     // 根据选择的环境动态选择分支
-                    def branch = params.ENVIRONMENT == 'prod' ? 'main' : params.ENVIRONMENT
-                    git branch: branch, url: "https://github.com/tanguangbin/${GIT_REPO_NAME}.git"
+//                     def branch = params.ENVIRONMENT == 'prod' ? 'main' : params.ENVIRONMENT
+//                     git branch: branch, url: "https://github.com/tanguangbin/${GIT_REPO_NAME}.git"
                 }
             }
         }
