@@ -50,6 +50,14 @@ pipeline {
             steps {
                 script {
                     echo "9999999999Selected branch: ${params.ENVIRONMENT}"
+                          def branch = ""
+                        if (params.ENVIRONMENT == 'prod') {
+                            branch = 'main'
+                        } else if (params.ENVIRONMENT == 'test') {
+                            branch = 'test'
+                        } else if (params.ENVIRONMENT == 'dev') {
+                            branch = 'dev'
+                        }
                     // 根据选择的环境动态分配分支名
                    if (params.ENVIRONMENT == 'prod') {
                        env.BRANCH_NAME = 'main'
@@ -61,6 +69,7 @@ pipeline {
                        env.BRANCH_NAME = 'unknown'
                    }
                     echo "9999999999Selected branch: ${env.BRANCH_NAME}"
+                    echo "9999999999Selected branch: ${branch}"
                 }
             }
         }
