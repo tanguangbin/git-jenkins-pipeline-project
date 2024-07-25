@@ -105,13 +105,11 @@ pipeline {
                             echo "BUILD_NUMBER: ${BUILD_NUMBER}"
                             echo "ENVIRONMENT: ${params.ENVIRONMENT}"
 
-                            if [ -n "$(git status --porcelain)" ]; then
-                                git add ${K8S_DEPLOYMENT_PATH}
-                                git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-                                git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${params.ENVIRONMENT}
-                            else
-                                echo "No changes to commit"
-                            fi
+
+                            git add ${K8S_DEPLOYMENT_PATH}
+                            git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+                            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${params.ENVIRONMENT}
+
                         '''
                     }
                 }
