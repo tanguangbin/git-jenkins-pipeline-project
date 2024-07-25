@@ -97,6 +97,7 @@ pipeline {
                 script {
                     def imageName = "${REGISTRY}:${env.BUILD_NUMBER}"
                     sh """
+                    ls
                     sed 's|IMAGE_PLACEHOLDER|${imageName}|g' k8s-deployment-template.yaml > k8s-deployment.yaml
                     cat k8s-deployment.yaml
                     """
