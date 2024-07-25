@@ -32,8 +32,7 @@ pipeline {
         TEMP_BRANCH="ARGO-CD-FETCH-BRANCH"
 
         // 动态分配的 Git 分支名
-        BRANCH_NAME = ""
-
+        BRANCH_NAME = "main"
     }
 
     agent any
@@ -51,10 +50,8 @@ pipeline {
             steps {
                 script {
                     // 根据选择的环境动态分配分支名
-                    if (params.ENVIRONMENT == 'prod') {
-                        env.BRANCH_NAME = 'main'
-                    } else {
-                        env.BRANCH_NAME = params.ENVIRONMENT
+                    if (params.ENVIRONMENT != 'prod') {
+                         env.BRANCH_NAME = params.ENVIRONMENT
                     }
                     echo "Selected branch: ${env.BRANCH_NAME}"
                 }
@@ -62,9 +59,18 @@ pipeline {
         }
         stage('Clone Repository') {
             steps {
-                 script {
-                    git branch: "${env.BRANCH_NAME}", url: "https://github.com/tanguangbin/${GIT_REPO_NAME}.git"
-                 }
+                script {
+                    // 根据选择的环境动态选择分支
+                      def branch = "${env.BRANCH_NAME}"
+//                     if (params.ENVIRONMENT == 'prod') {
+//                         branch = 'main'
+//                     } else if (params.ENVIRONMENT == 'test') {
+//                         branch = 'test'
+//                     } else if (params.ENVIRONMENT == 'dev') {
+//                         branch = 'dev'
+//                     }
+                    git branch: branch, url: "https://github.com/tanguangbin/${GIT_REPO_NAME}.git"
+                }
             }
         }
 
