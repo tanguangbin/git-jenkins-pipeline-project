@@ -25,9 +25,14 @@ pipeline {
         // Kubernetes Deployment 文件路径
         // 生成的实际用于部署的文件，包含替换后的 Docker 镜像标签
         K8S_DEPLOYMENT_PATH = 'k8s-deployment.yaml'
+
+        //Jenkins Pipeline 脚本用于自动化构建和部署过程。它根据不同环境（开发、测试、生产）克隆相应的 Git 分支，
+        //构建 Docker 镜像，并更新 Kubernetes 配置文件。特别地，将 k8s-deployment.yaml 文件的更新提交到临时分支
+        //ARGO-CD-FETCH-BRANCH，该分支专门供 Argo CD 使用，以便部署到 Kubernetes 集群中。这种做法避免了对开发主分支的干扰。
+        TEMP_BRANCH="ARGO-CD-FETCH-BRANCH"
+
         // 动态分配的 Git 分支名
         BRANCH_NAME = ""
-
 
     }
 
@@ -42,20 +47,24 @@ pipeline {
     }
 
     stages {
-        stage('Clone Repository') {
+        stage('Determine Branch Name') {
             steps {
                 script {
-                    // 根据选择的环境动态选择分支
-                    def branch = ''
+                    // 根据选择的环境动态分配分支名
                     if (params.ENVIRONMENT == 'prod') {
-                        branch = 'main'
-                    } else if (params.ENVIRONMENT == 'test') {
-                        branch = 'test'
-                    } else if (params.ENVIRONMENT == 'dev') {
-                        branch = 'dev'
+                        env.BRANCH_NAME = 'main'
+                    } else {
+                        env.BRANCH_NAME = params.ENVIRONMENT
                     }
-                    git branch: branch, url: "https://github.com/tanguangbin/${GIT_REPO_NAME}.git"
+                    echo "Selected branch: ${env.BRANCH_NAME}"
                 }
+            }
+        }
+        stage('Clone Repository') {
+            steps {
+                 script {
+                    git branch: "${env.BRANCH_NAME}", url: "https://github.com/tanguangbin/${GIT_REPO_NAME}.git"
+                 }
             }
         }
 
@@ -134,7 +143,7 @@ pipeline {
 //                         git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${params.ENVIRONMENT}
 
                      # 创建临时分支
-                    TEMP_BRANCH="ARGO-CD-FETCH-BRANCH"
+
                     git checkout -b $TEMP_BRANCH
 
                     # 提交临时文件
