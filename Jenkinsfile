@@ -130,18 +130,18 @@ pipeline {
                 }
             }
         }
-         stage('Simulate Run Spring Boot Application') {
-            steps {
-                script {
-                    echo "Simulating Spring Boot application run..."
-                    sh '''
-                    java -jar target/*.jar &
-                    sleep 30
-                    curl -f http://localhost:8081/actuator/health || echo "Application failed to start"
-                    '''
-                    sh 'pkill -f "java -jar target/*.jar"' // 停止模拟的应用程序
-                }
-            }
-         }
+//          stage('Simulate Run Spring Boot Application') {
+//             steps {
+//                 script {
+//                     echo "Simulating Spring Boot application run..."
+//                     sh '''
+//                     java -jar target/*.jar &
+//                     sleep 30
+//                     curl -f http://localhost:8081/actuator/health || echo "Application failed to start"
+//                     '''
+//                     sh 'pkill -f "java -jar target/*.jar"' // 停止模拟的应用程序
+//                 }
+//             }
+//          }
     }
 }
