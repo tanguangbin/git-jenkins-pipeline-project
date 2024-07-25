@@ -73,8 +73,10 @@ pipeline {
             steps {
                 script {
                     // 根据环境设置不同的Maven命令
-                    def mavenGoal = params.ENVIRONMENT == 'prod' ? 'clean package -Pproduction' : 'clean package'
-                    sh "mvn ${mavenGoal}"
+//                     def mavenGoal = params.ENVIRONMENT == 'prod' ? 'clean package -Pproduction' : 'clean package'
+//                     sh "mvn ${mavenGoal}"
+                    def profile = params.ENVIRONMENT
+                    sh "mvn clean package -P${profile}"
                 }
             }
         }
