@@ -19,10 +19,13 @@ pipeline {
         GITHUB_CREDENTIALS_ID = 'github'
 
         // Kubernetes Deployment Template 文件路径
+        // 用于存储 Kubernetes 部署的模板文件，在其中占位符会被替换为实际的 Docker 镜像标签
         K8S_TEMPLATE_PATH = 'k8s-deployment-template.yaml'
 
         // Kubernetes Deployment 文件路径
+        // 生成的实际用于部署的文件，包含替换后的 Docker 镜像标签
         K8S_DEPLOYMENT_PATH = 'k8s-deployment.yaml'
+
     }
 
     agent any
@@ -48,7 +51,6 @@ pipeline {
                     } else if (params.ENVIRONMENT == 'dev') {
                         branch = 'dev'
                     }
-                    echo "Cloning branch: ${branch}"
                     git branch: branch, url: "https://github.com/tanguangbin/${GIT_REPO_NAME}.git"
                 }
             }
@@ -59,33 +61,55 @@ pipeline {
                 script {
                     // 根据环境设置不同的Maven命令
                     def mavenGoal = params.ENVIRONMENT == 'prod' ? 'clean package -Pproduction' : 'clean package'
-                    echo "Running Maven goal: ${mavenGoal}"
                     sh "mvn ${mavenGoal}"
                 }
             }
         }
 
+        // stage('Static Code Analysis') {
+        //   environment {
+        //     SONAR_URL = "http://34.201.116.83:9000"
+        //   }
+        //   steps {
+        //     withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
+        //       sh 'mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
+        //     }
+        //   }
+        // }
+
         stage('Build Docker Image') {
             steps {
                 script {
                     DOCKER_IMAGE = docker.build("${REGISTRY}:${env.BUILD_NUMBER}")
-                    echo "Built Docker image: ${DOCKER_IMAGE}"
                 }
             }
         }
+
+        // stage('Push Docker Image') {
+        //     steps {
+        //         script {
+        //             docker.withRegistry('', REGISTRY_CREDENTIAL) {
+        //                 DOCKER_IMAGE.push()
+        //             }
+        //         }
+        //     }
+        // }
+
+//         stage('Remove Unused Docker Image') {
+//             steps {
+//                 sh "docker rmi ${REGISTRY}:${env.BUILD_NUMBER}"
+//             }
+//         }
 
         stage('Update k8s YAML') {
             steps {
                 script {
                     def imageName = "${REGISTRY}:${env.BUILD_NUMBER}"
-                    echo "Updating k8s template with image name: ${imageName}"
                     sh """
                     pwd
-                    ls -al
-                    echo "K8S_TEMPLATE_PATH: ${K8S_TEMPLATE_PATH}"
-                    echo "K8S_DEPLOYMENT_PATH: ${K8S_DEPLOYMENT_PATH}"
+                    ls
                     sed 's|IMAGE_PLACEHOLDER|${imageName}|g' ${K8S_TEMPLATE_PATH} > ${K8S_DEPLOYMENT_PATH}
-                    cat ${K8S_DEPLOYMENT_PATH}
+                    cat k8s-deployment.yaml
                     """
                 }
             }
@@ -94,178 +118,17 @@ pipeline {
         stage('Update Deployment File') {
             steps {
                 withCredentials([string(credentialsId: "${GITHUB_CREDENTIALS_ID}", variable: 'GITHUB_TOKEN')]) {
-                    script {
-                        sh '''
-                            #!/bin/bash
-                            git config user.email "test@gmail.com"
-                            git config user.name "Andy Tan"
-                            echo "GITHUB_TOKEN: ${GITHUB_TOKEN:0:4}..." # Masking full token for security
-                            echo "GIT_USER_NAME: ${GIT_USER_NAME}"
-                            echo "GIT_REPO_NAME: ${GIT_REPO_NAME}"
-                            echo "BUILD_NUMBER: ${BUILD_NUMBER}"
-                            echo "ENVIRONMENT: ${params.ENVIRONMENT}"
+                    sh """
+                        git config user.email "test@gmail.com"
+                        git config user.name "Andy Tan"
+                        BUILD_NUMBER=${BUILD_NUMBER}
 
-
-                            git add ${K8S_DEPLOYMENT_PATH}
-                            git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-                            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${params.ENVIRONMENT}
-
-                        '''
-                    }
+                        git add k8s-deployment.yaml
+                        git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+                        git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${params.ENVIRONMENT}
+                    """
                 }
             }
         }
     }
 }
-
-
-
-
-// pipeline {
-//     environment {
-//         // Docker 镜像仓库地址
-//         REGISTRY = 'tanguangbin1980/test'
-//
-//         // GitHub 仓库名称
-//         GIT_REPO_NAME = "git-jenkins-pipeline-project"
-//
-//         // GitHub 用户名
-//         GIT_USER_NAME = "tanguangbin"
-//
-//         // Docker 仓库凭据ID
-//         REGISTRY_CREDENTIAL = 'dockerhub'
-//
-//         // Docker 镜像名称变量（动态生成）
-//         DOCKER_IMAGE = ''
-//
-//         // GitHub 凭据ID，用于认证推送
-//         GITHUB_CREDENTIALS_ID = 'github'
-//
-//         // Kubernetes Deployment Template 文件路径
-//         // 用于存储 Kubernetes 部署的模板文件，在其中占位符会被替换为实际的 Docker 镜像标签
-//         K8S_TEMPLATE_PATH = 'k8s-deployment-template.yaml'
-//
-//         // Kubernetes Deployment 文件路径
-//         // 生成的实际用于部署的文件，包含替换后的 Docker 镜像标签
-//         K8S_DEPLOYMENT_PATH = 'k8s-deployment.yaml'
-//
-//     }
-//
-//     agent any
-//
-//     parameters {
-//         choice(name: 'ENVIRONMENT', choices: ['dev', 'test', 'prod'], description: '选择部署的环境')
-//     }
-//
-//     tools {
-//         maven 'mvn' // 指定Maven的安装名称
-//     }
-//
-//     stages {
-//         stage('Clone Repository') {
-//             steps {
-//                 script {
-//                     // 根据选择的环境动态选择分支
-//                     def branch = ''
-//                     if (params.ENVIRONMENT == 'prod') {
-//                         branch = 'main'
-//                     } else if (params.ENVIRONMENT == 'test') {
-//                         branch = 'test'
-//                     } else if (params.ENVIRONMENT == 'dev') {
-//                         branch = 'dev'
-//                     }
-//                     git branch: branch, url: "https://github.com/tanguangbin/${GIT_REPO_NAME}.git"
-//                 }
-//             }
-//         }
-//
-//         stage('Build with Maven') {
-//             steps {
-//                 script {
-//                     // 根据环境设置不同的Maven命令
-//                     def mavenGoal = params.ENVIRONMENT == 'prod' ? 'clean package -Pproduction' : 'clean package'
-//                     sh "mvn ${mavenGoal}"
-//                 }
-//             }
-//         }
-//
-//         // stage('Static Code Analysis') {
-//         //   environment {
-//         //     SONAR_URL = "http://34.201.116.83:9000"
-//         //   }
-//         //   steps {
-//         //     withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
-//         //       sh 'mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
-//         //     }
-//         //   }
-//         // }
-//
-//         stage('Build Docker Image') {
-//             steps {
-//                 script {
-//                     DOCKER_IMAGE = docker.build("${REGISTRY}:${env.BUILD_NUMBER}")
-//                 }
-//             }
-//         }
-//
-//         // stage('Push Docker Image') {
-//         //     steps {
-//         //         script {
-//         //             docker.withRegistry('', REGISTRY_CREDENTIAL) {
-//         //                 DOCKER_IMAGE.push()
-//         //             }
-//         //         }
-//         //     }
-//         // }
-//
-// //         stage('Remove Unused Docker Image') {
-// //             steps {
-// //                 sh "docker rmi ${REGISTRY}:${env.BUILD_NUMBER}"
-// //             }
-// //         }
-//
-//         stage('Update k8s YAML') {
-//             steps {
-//                 script {
-//                     def imageName = "${REGISTRY}:${env.BUILD_NUMBER}"
-//                     sh """
-//                     pwd
-//                     ls
-//                     sed 's|IMAGE_PLACEHOLDER|${imageName}|g' ${K8S_TEMPLATE_PATH} > ${K8S_DEPLOYMENT_PATH}
-//                     cat k8s-deployment.yaml
-//                     """
-//                 }
-//             }
-//         }
-//
-//         stage('Update Deployment File') {
-//             steps {
-//                 withCredentials([string(credentialsId: "${GITHUB_CREDENTIALS_ID}", variable: 'GITHUB_TOKEN')]) {
-// //                     sh '''
-// //                         git config user.email "test@gmail.com"
-// //                         git config user.name "Andy Tan"
-// //                         BUILD_NUMBER=${BUILD_NUMBER}
-// //
-// //                         git add k8s-deployment.yaml
-// //                         git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-// //                         git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${params.ENVIRONMENT}
-// //                     '''
-//                         sh '''
-//                             #!/bin/bash
-//                             git config user.email "test@gmail.com"
-//                             git config user.name "Andy Tan"
-//
-//                             if [ -n "$(git status --porcelain)" ]; then
-//                                 git add k8s-deployment.yaml
-//                                 git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-//                                 git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${params.ENVIRONMENT}
-//                             else
-//                                 echo "No changes to commit"
-//                             fi
-//                         '''
-//
-//                 }
-//             }
-//         }
-//     }
-// }
