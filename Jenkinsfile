@@ -25,6 +25,9 @@ pipeline {
         // Kubernetes Deployment 文件路径
         // 生成的实际用于部署的文件，包含替换后的 Docker 镜像标签
         K8S_DEPLOYMENT_PATH = 'k8s-deployment.yaml'
+        // 动态分配的 Git 分支名
+        BRANCH_NAME = ""
+
 
     }
 
@@ -121,14 +124,28 @@ pipeline {
                     sh """
                         git config user.email "test@gmail.com"
                         git config user.name "Andy Tan"
-                        BUILD_NUMBER=${BUILD_NUMBER}
-                        # 强制添加被忽略的文件
-                        # 由于 k8s-deployment.yaml 文件在构建过程中被自动生成且可能每次构建都会改变，
-                        # 将其添加到 .gitignore 中避免手动冲突。但有时我们仍然需要将它推送到远程仓库，
-                        # 因此这里使用 git add -f 强制添加此文件。
-                        git add -f k8s-deployment.yaml
-                        git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-                        git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${params.ENVIRONMENT}
+//                         BUILD_NUMBER=${BUILD_NUMBER}
+//                         # 强制添加被忽略的文件
+//                         # 由于 k8s-deployment.yaml 文件在构建过程中被自动生成且可能每次构建都会改变，
+//                         # 将其添加到 .gitignore 中避免手动冲突。但有时我们仍然需要将它推送到远程仓库，
+//                         # 因此这里使用 git add -f 强制添加此文件。
+//                         git add -f k8s-deployment.yaml
+//                         git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+//                         git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${params.ENVIRONMENT}
+
+                     # 创建临时分支
+                    TEMP_BRANCH="ARGO-CD-FETCH-BRANCH"
+                    git checkout -b $TEMP_BRANCH
+
+                    # 提交临时文件
+                    git add ${K8S_DEPLOYMENT_PATH}
+                    git commit -m "Temporary commit for deployment image to version ${BUILD_NUMBER}"
+                    git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} $TEMP_BRANCH
+
+                    # 返回原始分支
+                    git checkout ${env.BRANCH_NAME}
+                    git branch -D $TEMP_BRANCH
+
                     """
                 }
             }
