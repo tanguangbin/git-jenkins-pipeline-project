@@ -198,6 +198,32 @@ pipeline {
          }
 
 
+         stage('Run Docker Container for Testing') {
+            steps {
+                script {
+                    def dockerImageTag = "${env.DOCKER_IMAGE_NAME}"
+
+                    // 停止并移除之前的容器（如果存在）
+                    sh "docker rm -f ${CONTAINER_NAME} || true"
+
+                    // 运行容器并指定 Spring Profile
+                    sh """
+                    docker run --name ${CONTAINER_NAME} -d \
+                        -e SPRING_PROFILES_ACTIVE=${params.ENVIRONMENT} \
+                        -p 8081:8081 \
+                        ${dockerImageTag}
+                    """
+
+                    // 测试应用程序
+                    sleep 10 // 等待应用程序启动
+                    sh "curl -f http://localhost:8081/actuator/health || echo 'Application failed to start'"
+
+                    // 停止并移除测试容器
+//                     sh "docker rm -f ${CONTAINER_NAME}"
+                }
+            }
+        }
+
 
 //         stage('Update Deployment File') {
 //             steps {
