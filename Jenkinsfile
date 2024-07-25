@@ -141,7 +141,7 @@ pipeline {
                 script {
                     def imageName = "${env.DOCKER_IMAGE_NAME}"
                     sh """
-                        sed -i 's|IMAGE_PLACEHOLDER|${imageName}|g; s|value: \"dev\"|value: \"${params.ENVIRONMENT}\"|g' ${K8S_DEPLOYMENT_NAME}
+                        sed -i 's|IMAGE_PLACEHOLDER|${imageName}|g; s|value: \"dev\"|value: \"${params.ENVIRONMENT}\"|g' ${K8S_TEMPLATE_NAME}  > ${K8S_DEPLOYMENT_NAME}
                         cat ${K8S_DEPLOYMENT_NAME}
                     """
                 }
