@@ -103,6 +103,7 @@ pipeline {
 
         stage('Remove Unused Docker Image') {
             steps {
+                sh "echo '8888888888888888 ${DOCKER_IMAGE} '"
                 sh "docker rmi ${REGISTRY}-${params.ENVIRONMENT}:${env.BUILD_NUMBER}"
             }
         }
