@@ -32,7 +32,7 @@ pipeline {
         TEMP_BRANCH="ARGO-CD-FETCH-BRANCH"
 
         // 动态分配的 Git 分支名
-        BRANCH_NAME = "main"
+        BRANCH_NAME = ""
     }
 
     agent any
@@ -49,13 +49,14 @@ pipeline {
         stage('Determine Branch Name') {
             steps {
                 script {
+                    echo "9999999999Selected branch: ${params.ENVIRONMENT}"
                     // 根据选择的环境动态分配分支名
                     if (params.ENVIRONMENT == 'prod') {
-                        //env.BRANCH_NAME = 'main'
+                        env.BRANCH_NAME = 'main'
                     } else {
                         env.BRANCH_NAME = params.ENVIRONMENT
                     }
-                    echo "Selected branch: ${env.BRANCH_NAME}"
+                    echo "9999999999Selected branch: ${env.BRANCH_NAME}"
                 }
             }
         }
