@@ -50,8 +50,10 @@ pipeline {
             steps {
                 script {
                     // 根据选择的环境动态分配分支名
-                    if (params.ENVIRONMENT != 'prod') {
-                         env.BRANCH_NAME = params.ENVIRONMENT
+                    if (params.ENVIRONMENT == 'prod') {
+                        //env.BRANCH_NAME = 'main'
+                    } else {
+                        env.BRANCH_NAME = params.ENVIRONMENT
                     }
                     echo "Selected branch: ${env.BRANCH_NAME}"
                 }

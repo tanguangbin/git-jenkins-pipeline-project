@@ -4,9 +4,6 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-# Ignore k8s-deployment.yaml file
-k8s-deployment.yaml
-
 ### STS ###
 .apt_generated
 .classpath
