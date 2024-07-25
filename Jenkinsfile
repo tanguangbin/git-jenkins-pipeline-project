@@ -122,8 +122,8 @@ pipeline {
                         git config user.email "test@gmail.com"
                         git config user.name "Andy Tan"
                         BUILD_NUMBER=${BUILD_NUMBER}
-
-                        git add k8s-deployment.yaml
+                        //git add -f 因为本文件是git中直接修改的，会导致本地冲突，所以把此文件添加到.gitignore中了
+                        git add -f k8s-deployment.yaml
                         git commit -m "Update deployment image to version ${BUILD_NUMBER}"
                         git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${params.ENVIRONMENT}
                     """
