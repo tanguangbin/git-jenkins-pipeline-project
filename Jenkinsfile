@@ -120,74 +120,90 @@ pipeline {
                 }
             }
         }
-
-        stage('Update Deployment File') {
+ stage('Update Deployment File') {
             steps {
                 withCredentials([string(credentialsId: "${GITHUB_CREDENTIALS_ID}", variable: 'GITHUB_TOKEN')]) {
-                    sh """
-                        git config user.email "test@gmail.com"
-                        git config user.name "Andy Tan"
+                    script {
+                        sh '''
+                            #!/bin/bash
+                            git config user.email "test@gmail.com"
+                            git config user.name "Andy Tan"
 
-                         # 强制添加被忽略的文件
-                         # 由于 k8s-deployment.yaml 文件在构建过程中被自动生成且可能每次构建都会改变，
-                         # 将其添加到 .gitignore 中避免手动冲突。但有时我们仍然需要将它推送到远程仓库，
-                         # 因此这里使用 git add -f 强制添加此文件。
-                         #git add -f k8s-deployment.yaml
-                         #git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-                         #git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${params.ENVIRONMENT}
+                            # 确保本地仓库是最新的
+                            git fetch origin
 
-                        # 检查临时分支是否存在并切换
-                        if git rev-parse --verify ${TEMP_BRANCH}; then
-                            #echo "Switching to existing branch ${TEMP_BRANCH}"
-                            #git stash
-                            #git checkout ${TEMP_BRANCH}
-                            #git stash pop
-                            #产出docker中本地的git分支，避免k8s-deployment.yaml冲突
-                            git branch -D ${TEMP_BRANCH}
-                            echo "wait for 2 second for deleting local TEMP_BRANCH"
-                            sleep 2
+                            # 删除本地临时分支，如果存在
+                            git branch -D ${TEMP_BRANCH} || echo "No local branch ${TEMP_BRANCH} to delete"
 
-                        #else
-                        #    echo "Creating new branch ${TEMP_BRANCH}"
-                        #    git checkout -b ${TEMP_BRANCH}
-                        fi
+                            # 基于 dev 创建新的临时分支
+                            git checkout -b ${TEMP_BRANCH} origin/lite
 
+                            # 提交 k8s-deployment.yaml 文件
+                            git add ${K8S_DEPLOYMENT_PATH}
+                            git commit -m "Temporary commit for deployment image to version ${BUILD_NUMBER}"
+                            git push -f https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} ${TEMP_BRANCH}
 
-                        # 等待 5 秒
-
-                        git checkout -b ${TEMP_BRANCH}
-                        #git pull
-                        echo "wait for 5 second for checkout new TEMP_BRANCH"
-                        sleep 5
-                        # 提交临时文件
-                        git add ${K8S_DEPLOYMENT_NAME}
-                        git commit -m "Temporary commit for deployment image to version ${BUILD_NUMBER}"
-                        git push -f https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} $TEMP_BRANCH
-
-                        #产出docker中本地的git分支，避免冲突
-                        #git branch -D ${TEMP_BRANCH}
-
-                        # 如果需要 返回原始分支
-                        # 根据选择的环境动态选择分支
-                        #def branch = params.ENVIRONMENT == 'prod' ? 'main' : params.ENVIRONMENT
-                        #git checkout branch
-
-                    """
+                            # 返回原始分支
+                            #git checkout ${params.ENVIRONMENT == 'prod' ? 'main' : params.ENVIRONMENT}
+                        '''
+                    }
                 }
             }
-        }
-//          stage('Simulate Run Spring Boot Application') {
+//         stage('Update Deployment File') {
 //             steps {
-//                 script {
-//                     echo "Simulating Spring Boot application run..."
-//                     sh '''
-//                     java -jar target/*.jar &
-//                     sleep 30
-//                     curl -f http://localhost:8081/actuator/health || echo "Application failed to start"
-//                     '''
-//                     sh 'pkill -f "java -jar target/*.jar"' // 停止模拟的应用程序
+//                 withCredentials([string(credentialsId: "${GITHUB_CREDENTIALS_ID}", variable: 'GITHUB_TOKEN')]) {
+//                     sh """
+//                         git config user.email "test@gmail.com"
+//                         git config user.name "Andy Tan"
+//
+//                          # 强制添加被忽略的文件
+//                          # 由于 k8s-deployment.yaml 文件在构建过程中被自动生成且可能每次构建都会改变，
+//                          # 将其添加到 .gitignore 中避免手动冲突。但有时我们仍然需要将它推送到远程仓库，
+//                          # 因此这里使用 git add -f 强制添加此文件。
+//                          #git add -f k8s-deployment.yaml
+//                          #git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+//                          #git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${params.ENVIRONMENT}
+//
+//                         # 检查临时分支是否存在并切换
+//                         if git rev-parse --verify ${TEMP_BRANCH}; then
+//                             #echo "Switching to existing branch ${TEMP_BRANCH}"
+//                             #git stash
+//                             #git checkout ${TEMP_BRANCH}
+//                             #git stash pop
+//                             #产出docker中本地的git分支，避免k8s-deployment.yaml冲突
+//                             git branch -D ${TEMP_BRANCH}
+//                             echo "wait for 2 second for deleting local TEMP_BRANCH"
+//                             sleep 2
+//
+//                         #else
+//                         #    echo "Creating new branch ${TEMP_BRANCH}"
+//                         #    git checkout -b ${TEMP_BRANCH}
+//                         fi
+//
+//
+//                         # 等待 5 秒
+//
+//                         git checkout -b ${TEMP_BRANCH}
+//                         #git pull
+//                         echo "wait for 5 second for checkout new TEMP_BRANCH"
+//                         sleep 5
+//                         # 提交临时文件
+//                         git add ${K8S_DEPLOYMENT_NAME}
+//                         git commit -m "Temporary commit for deployment image to version ${BUILD_NUMBER}"
+//                         git push -f https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} $TEMP_BRANCH
+//
+//                         #产出docker中本地的git分支，避免冲突
+//                         #git branch -D ${TEMP_BRANCH}
+//
+//                         # 如果需要 返回原始分支
+//                         # 根据选择的环境动态选择分支
+//                         #def branch = params.ENVIRONMENT == 'prod' ? 'main' : params.ENVIRONMENT
+//                         #git checkout branch
+//
+//                     """
 //                 }
 //             }
-//          }
+//         }
+
     }
 }
