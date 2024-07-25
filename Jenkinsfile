@@ -86,7 +86,8 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    DOCKER_IMAGE = docker.build("${REGISTRY}-${params.ENVIRONMENT}:${env.BUILD_NUMBER}")
+                    env.DOCKER_IMAGE_NAME = "${REGISTRY}-${params.ENVIRONMENT}:${env.BUILD_NUMBER}"
+                    DOCKER_IMAGE = docker.build(${env.DOCKER_IMAGE_NAME}")
                 }
             }
         }
@@ -103,15 +104,15 @@ pipeline {
 
         stage('Remove Unused Docker Image') {
             steps {
-                sh "echo '8888888888888888 ${DOCKER_IMAGE.imageName} '"
-                sh "docker rmi ${REGISTRY}-${params.ENVIRONMENT}:${env.BUILD_NUMBER}"
+
+                sh "docker rmi ${env.DOCKER_IMAGE_NAME}"
             }
         }
 
         stage('Update k8s YAML') {
             steps {
                 script {
-                    def imageName = "${REGISTRY}-${params.ENVIRONMENT}:${env.BUILD_NUMBER}"
+                    def imageName = "${env.DOCKER_IMAGE_NAME}"
                     sh """
                     pwd
                     ls
