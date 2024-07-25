@@ -17,6 +17,15 @@ pipeline {
 
         // GitHub 凭据ID，用于认证推送
         GITHUB_CREDENTIALS_ID = 'github'
+
+        // Kubernetes Deployment Template 文件路径
+        // 用于存储 Kubernetes 部署的模板文件，在其中占位符会被替换为实际的 Docker 镜像标签
+        K8S_TEMPLATE_PATH = 'k8s-deployment-template.yaml'
+
+        // Kubernetes Deployment 文件路径
+        // 生成的实际用于部署的文件，包含替换后的 Docker 镜像标签
+        K8S_DEPLOYMENT_PATH = 'k8s-deployment.yaml'
+
     }
 
     agent any
@@ -97,8 +106,10 @@ pipeline {
                 script {
                     def imageName = "${REGISTRY}:${env.BUILD_NUMBER}"
                     sh """
-                    ls
-                    sed 's|IMAGE_PLACEHOLDER|${imageName}|g' k8s-deployment-template.yaml > k8s-deployment.yaml
+                    echo "Current directory: $(pwd)"
+                    echo "Listing files:"
+                    ls -al
+                    sed 's|IMAGE_PLACEHOLDER|${imageName}|g' ./${K8S_TEMPLATE_PATH} > ${K8S_DEPLOYMENT_PATH}
                     cat k8s-deployment.yaml
                     """
                 }
