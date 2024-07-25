@@ -136,6 +136,21 @@ pipeline {
                             # 删除本地临时分支，如果存在
                             git branch -D ${TEMP_BRANCH} || echo "No local branch ${TEMP_BRANCH} to delete"
 
+
+                            # 备份 k8s-deployment.yaml 文件，避免冲突
+                            if [ -f "${K8S_DEPLOYMENT_NAME}" ]; then
+                                mv ${K8S_DEPLOYMENT_NAME} ${K8S_DEPLOYMENT_NAME}.backup
+                            fi
+
+                            # 基于 dev 创建新的临时分支
+                            git checkout -b ${TEMP_BRANCH} origin/dev
+
+                            # 恢复 k8s-deployment.yaml 文件
+                            if [ -f "${K8S_DEPLOYMENT_NAME}.backup" ]; then
+                                mv ${K8S_DEPLOYMENT_NAME}.backup ${K8S_DEPLOYMENT_NAME}
+                            fi
+
+
                             # 基于 dev 创建新的临时分支
                             git checkout -b ${TEMP_BRANCH} origin/lite
 
