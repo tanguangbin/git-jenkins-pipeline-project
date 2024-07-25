@@ -99,25 +99,25 @@ pipeline {
             }
         }
 
-        stage('Scan Docker Image with Trivy') {
-            steps {
-                script {
-                    // 安装 Trivy
-                    sh '''
-                    if ! command -v trivy &> /dev/null; then
-                        echo "Installing Trivy..."
-                        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
-                    fi
-                    '''
-
-                    // 使用 Trivy 扫描 Docker 镜像
-//                     sh "trivy image ${env.DOCKER_IMAGE_NAME} || true"
-                    // 使用 Trivy 扫描 Docker 镜像，并将结果输出到指定文件
-                    sh "trivy image -f json -o ${TRIVY_REPORT_PATH} ${DOCKER_IMAGE} || true"
-                    echo "Trivy scan completed. Report saved to ${TRIVY_REPORT_PATH}"
-                }
-            }
-        }
+//         stage('Scan Docker Image with Trivy') {
+//             steps {
+//                 script {
+//                     // 安装 Trivy
+//                     sh '''
+//                     if ! command -v trivy &> /dev/null; then
+//                         echo "Installing Trivy..."
+//                         curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+//                     fi
+//                     '''
+//
+//                     // 使用 Trivy 扫描 Docker 镜像
+// //                     sh "trivy image ${env.DOCKER_IMAGE_NAME} || true"
+//                     // 使用 Trivy 扫描 Docker 镜像，并将结果输出到指定文件
+//                     sh "trivy image -f json -o ${TRIVY_REPORT_PATH} ${DOCKER_IMAGE} || true"
+//                     echo "Trivy scan completed. Report saved to ${TRIVY_REPORT_PATH}"
+//                 }
+//             }
+//         }
 
 //         stage('Push Docker Image') {
 //             steps {
