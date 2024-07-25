@@ -106,9 +106,9 @@ pipeline {
                 script {
                     def imageName = "${REGISTRY}:${env.BUILD_NUMBER}"
                     sh """
-                    echo 'Current directory: $(pwd)'
-                    ls -al
-                    sed 's|IMAGE_PLACEHOLDER|${imageName}|g' ./${K8S_TEMPLATE_PATH} > ${K8S_DEPLOYMENT_PATH}
+                    pwd
+                    ls
+                    sed 's|IMAGE_PLACEHOLDER|${imageName}|g' ${K8S_TEMPLATE_PATH} > ${K8S_DEPLOYMENT_PATH}
                     cat k8s-deployment.yaml
                     """
                 }
