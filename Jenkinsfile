@@ -138,24 +138,27 @@ pipeline {
 
                         # 检查临时分支是否存在并切换
                         if git rev-parse --verify ${TEMP_BRANCH}; then
-                            echo "Switching to existing branch ${TEMP_BRANCH}"
+                            #echo "Switching to existing branch ${TEMP_BRANCH}"
                             #git stash
-                            git checkout ${TEMP_BRANCH}
+                            #git checkout ${TEMP_BRANCH}
                             #git stash pop
-                            #产出docker中本地的git分支，避免冲突
-                            #git branch -D ${TEMP_BRANCH}
+                            #产出docker中本地的git分支，避免k8s-deployment.yaml冲突
+                            git branch -D ${TEMP_BRANCH}
+                            echo "wait for 2 second for deleting local TEMP_BRANCH"
+                            sleep 2
 
-                        else
-                            echo "Creating new branch ${TEMP_BRANCH}"
-                            git checkout -b ${TEMP_BRANCH}
+                        #else
+                        #    echo "Creating new branch ${TEMP_BRANCH}"
+                        #    git checkout -b ${TEMP_BRANCH}
                         fi
 
 
                         # 等待 5 秒
-                        sleep 2
-                        #git checkout -b ${TEMP_BRANCH}
+
+                        git checkout -b ${TEMP_BRANCH}
                         #git pull
-                        #sleep 5
+                        echo "wait for 5 second for checkout new TEMP_BRANCH"
+                        sleep 5
                         # 提交临时文件
                         git add ${K8S_DEPLOYMENT_NAME}
                         git commit -m "Temporary commit for deployment image to version ${BUILD_NUMBER}"
