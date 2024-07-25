@@ -53,8 +53,12 @@ pipeline {
                     // 根据选择的环境动态分配分支名
                     if (params.ENVIRONMENT == 'prod') {
                         env.BRANCH_NAME = 'main'
-                    } else {
-                        env.BRANCH_NAME = params.ENVIRONMENT
+                    } else if (params.ENVIRONMENT == 'test') {
+                        env.BRANCH_NAME = 'test'
+                    } else if (params.ENVIRONMENT == 'dev') {
+                        env.BRANCH_NAME = 'dev'
+                    }else{
+                        env.BRANCH_NAME = '6666666'
                     }
                     echo "9999999999Selected branch: ${env.BRANCH_NAME}"
                 }
@@ -64,7 +68,7 @@ pipeline {
             steps {
                 script {
                     // 根据选择的环境动态选择分支
-                      def branch = "${env.BRANCH_NAME}"
+//                       def branch = "${env.BRANCH_NAME}"
 //                     if (params.ENVIRONMENT == 'prod') {
 //                         branch = 'main'
 //                     } else if (params.ENVIRONMENT == 'test') {
@@ -72,7 +76,7 @@ pipeline {
 //                     } else if (params.ENVIRONMENT == 'dev') {
 //                         branch = 'dev'
 //                     }
-                    git branch: branch, url: "https://github.com/tanguangbin/${GIT_REPO_NAME}.git"
+                    git branch: "${env.BRANCH_NAME}", url: "https://github.com/tanguangbin/${GIT_REPO_NAME}.git"
                 }
             }
         }
