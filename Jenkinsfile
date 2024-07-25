@@ -137,6 +137,7 @@ pipeline {
                          #git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${params.ENVIRONMENT}
 
                         # 检查临时分支是否存在并切换
+                        git branch -D ${TEMP_BRANCH}
                         if git rev-parse --verify ${TEMP_BRANCH}; then
                             echo "Switching to existing branch ${TEMP_BRANCH}"
                             git stash
