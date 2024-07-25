@@ -79,11 +79,11 @@ pipeline {
         //     }
         // }
 
-        stage('Remove Unused Docker Image') {
-            steps {
-                sh "docker rmi ${REGISTRY}:${env.BUILD_NUMBER}"
-            }
-        }
+//         stage('Remove Unused Docker Image') {
+//             steps {
+//                 sh "docker rmi ${REGISTRY}:${env.BUILD_NUMBER}"
+//             }
+//         }
 
         stage('Update k8s YAML') {
             steps {
