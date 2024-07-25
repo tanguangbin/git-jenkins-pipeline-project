@@ -142,8 +142,8 @@ pipeline {
                                 mv ${K8S_DEPLOYMENT_NAME} ${K8S_DEPLOYMENT_NAME}.backup
                             fi
 
-                            # 基于 dev 创建新的临时分支
-                            git checkout -b ${TEMP_BRANCH} origin/dev
+                            # 基于 lite 创建新的临时分支
+                            git checkout -b ${TEMP_BRANCH} origin/lite
 
                             # 恢复 k8s-deployment.yaml 文件
                             if [ -f "${K8S_DEPLOYMENT_NAME}.backup" ]; then
@@ -151,11 +151,9 @@ pipeline {
                             fi
 
 
-                            # 基于 dev 创建新的临时分支
-                            git checkout -b ${TEMP_BRANCH} origin/lite
 
                             # 提交 k8s-deployment.yaml 文件
-                            git add ${K8S_DEPLOYMENT_PATH}
+                            git add ${K8S_DEPLOYMENT_NAME}
                             git commit -m "Temporary commit for deployment image to version ${BUILD_NUMBER}"
                             git push -f https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} ${TEMP_BRANCH}
 
