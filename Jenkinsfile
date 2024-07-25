@@ -133,12 +133,12 @@ pipeline {
 //             }
 //         }
 
-        stage('Remove Unused Docker Image') {
-            steps {
-
-                sh "docker rmi ${env.DOCKER_IMAGE_NAME}"
-            }
-        }
+//         stage('Remove Unused Docker Image') {
+//             steps {
+//
+//                 sh "docker rmi ${env.DOCKER_IMAGE_NAME}"
+//             }
+//         }
 
         stage('Update k8s YAML') {
             steps {
