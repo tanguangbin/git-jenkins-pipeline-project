@@ -31,6 +31,11 @@ pipeline {
         //ARGO-CD-FETCH-BRANCH，该分支专门供 Argo CD 使用，以便部署到 Kubernetes 集群中。这种做法避免了对开发主分支的干扰。
         TEMP_BRANCH="ARGO-CD-FETCH-BRANCH"
 
+        GIT_USER_EMAIL="ADMIN@gmail.com"
+        GIT_USERNAME="ADMIN"
+
+        IMAGE_PLACEHOLDER="IMAGE_PLACEHOLDER"
+
     }
 
     agent any
@@ -116,7 +121,7 @@ pipeline {
                     sh """
                     pwd
                     ls
-                    sed 's|IMAGE_PLACEHOLDER|${imageName}|g' ${K8S_TEMPLATE_NAME} > ${K8S_DEPLOYMENT_NAME}
+                    sed 's|${env.IMAGE_PLACEHOLDER}|${imageName}|g' ${K8S_TEMPLATE_NAME} > ${K8S_DEPLOYMENT_NAME}
                     cat k8s-deployment.yaml
                     """
                 }
@@ -129,8 +134,8 @@ pipeline {
                     script {
                         sh '''
                             #!/bin/bash
-                            git config user.email "test@gmail.com"
-                            git config user.name "Andy Tan"
+                            git config user.email "${GIT_USER_EMAIL}"
+                            git config user.name "${GIT_USERNAME}"
 
                             # 确保本地仓库是最新的
                             git fetch origin
