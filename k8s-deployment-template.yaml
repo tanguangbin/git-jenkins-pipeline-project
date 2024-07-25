@@ -32,7 +32,7 @@ spec:
   ports:
     - port: PORT_PLACEHOLDER  # Service 的端口
       targetPort: PORT_PLACEHOLDER  # 容器中的端口
-      nodePort: NODEPORT_PLACEHOLDER  # 在每个 Node 上的端口（30000-32767）
+      nodePort: NODEPORTS_PLACEHOLDER  # 在每个 Node 上的端口（30000-32767）
   selector:
     app: your-app
 ---

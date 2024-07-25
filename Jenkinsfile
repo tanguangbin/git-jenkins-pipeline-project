@@ -5,7 +5,7 @@ pipeline {
 
         //K8S 文件相关变量
         PORT_PLACEHOLDER='8081'
-        NODEPORT_PLACEHOLDER='30011'
+        NODEPORTS_PLACEHOLDER='30011'
         LOADBALANCER_PLACEHOLDER='www.baidu.com'
         IMAGE_PLACEHOLDER="IMAGE_PLACEHOLDER"
 
@@ -160,7 +160,7 @@ pipeline {
                         #LOADBALANCER_PLACEHOLDER='www.baidu.com'
                         #IMAGE_PLACEHOLDER="IMAGE_PLACEHOLDER"
 
-                        sed 's|IMAGE_PLACEHOLDER|${imageName}|g; s|LOADBALANCER_PLACEHOLDER|${LOADBALANCER_PLACEHOLDER}|g; s|PORT_PLACEHOLDER|${PORT_PLACEHOLDER}|g; s|NODEPORT_PLACEHOLDER|${NODEPORT_PLACEHOLDER}|g; s|value: \"dev\"|value: \"${springProfile}\"|g' ${K8S_TEMPLATE_NAME} > ${K8S_DEPLOYMENT_NAME}
+                        sed 's|IMAGE_PLACEHOLDER|${imageName}|g; s|LOADBALANCER_PLACEHOLDER|${LOADBALANCER_PLACEHOLDER}|g; s|PORT_PLACEHOLDER|${PORT_PLACEHOLDER}|g; s|NODEPORTS_PLACEHOLDER|${NODEPORTS_PLACEHOLDER}|g; s|value: \"dev\"|value: \"${springProfile}\"|g' ${K8S_TEMPLATE_NAME} > ${K8S_DEPLOYMENT_NAME}
                         cat ${K8S_DEPLOYMENT_NAME}
                     """
                 }
@@ -224,8 +224,8 @@ pipeline {
                     sh """
                     docker run --name ${CONTAINER_NAME} -d \
                         -e SPRING_PROFILES_ACTIVE=${params.ENVIRONMENT} \
-                        -e SERVER_PORT=${env.SERVER_PORT} \
-                        -p ${env.SERVER_PORT}:${env.SERVER_PORT} \
+                        -e SERVER_PORT=${PORT_PLACEHOLDER} \
+                        -p ${PORT_PLACEHOLDER}:${PORT_PLACEHOLDER} \
                         ${dockerImageTag}
                     """
 
