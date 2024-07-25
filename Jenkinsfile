@@ -137,19 +137,20 @@ pipeline {
                          #git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${params.ENVIRONMENT}
 
                         # 检查临时分支是否存在并切换
+                        if git rev-parse --verify ${TEMP_BRANCH}; then
+                            #echo "Switching to existing branch ${TEMP_BRANCH}"
+                            #git stash
+                            #git checkout ${TEMP_BRANCH}
+                            #git stash pop
+                            #产出docker中本地的git分支，避免冲突
+                            git branch -D ${TEMP_BRANCH}
 
-                        #if git rev-parse --verify ${TEMP_BRANCH}; then
-                        #    echo "Switching to existing branch ${TEMP_BRANCH}"
-                        #    git stash
-                        #    git checkout ${TEMP_BRANCH}
-                        #    git stash pop
                         #else
                         #    echo "Creating new branch ${TEMP_BRANCH}"
                         #    git checkout -b ${TEMP_BRANCH}
-                        #fi
+                        fi
 
-                        #产出docker中本地的git分支，避免冲突
-                        git branch -D ${TEMP_BRANCH}
+
                         # 等待 5 秒
                         sh 'sleep 5'
                         git checkout -b ${TEMP_BRANCH}
