@@ -36,6 +36,8 @@ pipeline {
 
         IMAGE_PLACEHOLDER="IMAGE_PLACEHOLDER"
 
+        TRIVY_REPORT_PATH = 'trivy-report.json'  // Trivy 报告文件路径
+
     }
 
     agent any
@@ -109,7 +111,10 @@ pipeline {
                     '''
 
                     // 使用 Trivy 扫描 Docker 镜像
-                    sh "trivy image ${env.DOCKER_IMAGE_NAME} || true"
+//                     sh "trivy image ${env.DOCKER_IMAGE_NAME} || true"
+                    // 使用 Trivy 扫描 Docker 镜像，并将结果输出到指定文件
+                    sh "trivy image -f json -o ${TRIVY_REPORT_PATH} ${DOCKER_IMAGE} || true"
+                    echo "Trivy scan completed. Report saved to ${TRIVY_REPORT_PATH}"
                 }
             }
         }
