@@ -152,7 +152,7 @@ pipeline {
 
 
                         # 等待 5 秒
-                        sh 'sleep 5'
+                        sleep 2
                         git checkout -b ${TEMP_BRANCH}
                         # 提交临时文件
                         git add ${K8S_DEPLOYMENT_NAME}
