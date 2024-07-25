@@ -52,13 +52,13 @@ pipeline {
                     echo "9999999999Selected branch: ${params.ENVIRONMENT}"
                     // 根据选择的环境动态分配分支名
                     if (params.ENVIRONMENT == 'prod') {
-                        env.BRANCH_NAME = 'main'
+                        BRANCH_NAME = 'main'
                     } else if (params.ENVIRONMENT == 'test') {
-                        env.BRANCH_NAME = 'test'
+                        BRANCH_NAME = 'test'
                     } else if (params.ENVIRONMENT == 'dev') {
-                        env.BRANCH_NAME = 'dev'
+                        BRANCH_NAME = 'dev'
                     }else{
-                        env.BRANCH_NAME = '6666666'
+                        BRANCH_NAME = '6666666'
                     }
                     echo "9999999999Selected branch: ${env.BRANCH_NAME}"
                 }
