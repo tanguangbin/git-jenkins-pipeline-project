@@ -122,7 +122,10 @@ pipeline {
                         git config user.email "test@gmail.com"
                         git config user.name "Andy Tan"
                         BUILD_NUMBER=${BUILD_NUMBER}
-                        //git add -f 因为本文件是git中直接修改的，会导致本地冲突，所以把此文件添加到.gitignore中了
+                        # 强制添加被忽略的文件
+                        # 由于 k8s-deployment.yaml 文件在构建过程中被自动生成且可能每次构建都会改变，
+                        # 将其添加到 .gitignore 中避免手动冲突。但有时我们仍然需要将它推送到远程仓库，
+                        # 因此这里使用 git add -f 强制添加此文件。
                         git add -f k8s-deployment.yaml
                         git commit -m "Update deployment image to version ${BUILD_NUMBER}"
                         git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${params.ENVIRONMENT}
