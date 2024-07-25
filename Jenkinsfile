@@ -20,11 +20,11 @@ pipeline {
 
         // Kubernetes Deployment Template 文件路径
         // 用于存储 Kubernetes 部署的模板文件，在其中占位符会被替换为实际的 Docker 镜像标签
-        K8S_TEMPLATE_PATH = 'k8s-deployment-template.yaml'
+        K8S_TEMPLATE_NAME = 'k8s-deployment-template.yaml'
 
         // Kubernetes Deployment 文件路径
         // 生成的实际用于部署的文件，包含替换后的 Docker 镜像标签
-        K8S_DEPLOYMENT_PATH = 'k8s-deployment.yaml'
+        K8S_DEPLOYMENT_NAME = 'k8s-deployment.yaml'
 
         //Jenkins Pipeline 脚本用于自动化构建和部署过程。它根据不同环境（开发、测试、生产）克隆相应的 Git 分支，
         //构建 Docker 镜像，并更新 Kubernetes 配置文件。特别地，将 k8s-deployment.yaml 文件的更新提交到临时分支
@@ -114,7 +114,7 @@ pipeline {
                     sh """
                     pwd
                     ls
-                    sed 's|IMAGE_PLACEHOLDER|${imageName}|g' ${K8S_TEMPLATE_PATH} > ${K8S_DEPLOYMENT_PATH}
+                    sed 's|IMAGE_PLACEHOLDER|${imageName}|g' ${K8S_TEMPLATE_NAME} > ${K8S_DEPLOYMENT_NAME}
                     cat k8s-deployment.yaml
                     """
                 }
@@ -139,14 +139,14 @@ pipeline {
                         # 创建临时分支
                         git checkout -b $TEMP_BRANCH
                         # 提交临时文件
-                        git add ${K8S_DEPLOYMENT_PATH}
+                        git add ${K8S_DEPLOYMENT_NAME}
                         git commit -m "Temporary commit for deployment image to version ${BUILD_NUMBER}"
                         git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} $TEMP_BRANCH
 
                         # 如果需要 返回原始分支
                         # 根据选择的环境动态选择分支
-                        def branch = params.ENVIRONMENT == 'prod' ? 'main' : params.ENVIRONMENT
-                        git checkout branch
+                        #def branch = params.ENVIRONMENT == 'prod' ? 'main' : params.ENVIRONMENT
+                        #git checkout branch
 
                     """
                 }
