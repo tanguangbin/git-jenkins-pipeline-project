@@ -141,9 +141,19 @@ pipeline {
                 script {
                     def imageName = "${env.DOCKER_IMAGE_NAME}"
                     sh """
-                    pwd
-                    ls
-                    sed 's|${env.IMAGE_PLACEHOLDER}|${imageName}|g' ${K8S_TEMPLATE_NAME} > ${K8S_DEPLOYMENT_NAME}
+
+                    // 根据选择的环境设置 Spring Profile
+                    if (params.ENVIRONMENT == 'prod') {
+                        env.SPRING_PROFILE = 'prod'
+                    } else if (params.ENVIRONMENT == 'dev') {
+                       env.SPRING_PROFILE = 'dev'
+                    }else if (params.ENVIRONMENT == 'test') {
+                       env.SPRING_PROFILE = 'test'
+                    }
+
+                    sed -i 's|IMAGE_PLACEHOLDER|'"${dockerImage}"'|g; s|value: \"dev\"|value: \"'"${env.SPRING_PROFILE}"'\"|g' ${K8S_DEPLOYMENT_PATH}  > ${K8S_DEPLOYMENT_NAME}
+
+                    //sed 's|${env.IMAGE_PLACEHOLDER}|${imageName}|g' ${K8S_TEMPLATE_NAME} > ${K8S_DEPLOYMENT_NAME}
                     cat k8s-deployment.yaml
                     """
                 }

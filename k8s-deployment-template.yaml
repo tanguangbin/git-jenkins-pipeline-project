@@ -16,6 +16,9 @@ spec:
     spec:
       containers:
         - name: your-app
-          image: IMAGE_PLACEHOLDER
+          image: IMAGE_PLACEHOLDER  # 这里会被 Jenkins 替换为实际的镜像名称
           ports:
-            - containerPort: 8080
+            - containerPort: 8081
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "dev"  # 默认设置为 dev，可以在 Jenkinsfile 中动态修改
