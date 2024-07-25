@@ -68,7 +68,13 @@ pipeline {
                    } else {
                        env.BRANCH_NAME = 'unknown'
                    }
-                    echo "9999999999Selected branch: ${env.BRANCH_NAME}"
+                    echo "9999999999Selected env.BRANCH_NAME: ${env.BRANCH_NAME}"
+
+                    // 设置全局环境变量
+                    env.BRANCH_NAME = branch
+
+                    echo "9999999999Selected env.BRANCH_NAME: ${env.BRANCH_NAME}"
+                    echo "9999999999Selected BRANCH_NAME: ${BRANCH_NAME}"
                     echo "9999999999Selected branch: ${branch}"
                 }
             }
