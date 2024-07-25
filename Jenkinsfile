@@ -140,6 +140,7 @@ pipeline {
             steps {
                 script {
                     def imageName = "${env.DOCKER_IMAGE_NAME}"
+                    def springProfile = params.ENVIRONMENT
                     sh """
                         sed 's|IMAGE_PLACEHOLDER|${imageName}|g; s|value: \"dev\"|value: \"${springProfile}\"|g' ${K8S_TEMPLATE_NAME} > ${K8S_DEPLOYMENT_NAME}
                         cat ${K8S_DEPLOYMENT_NAME}
