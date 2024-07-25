@@ -3,6 +3,8 @@ pipeline {
         // Docker 镜像仓库地址
         REGISTRY = 'tanguangbin1980/test'
 
+        CONTAINER_NAME = 'test-container'
+
         // GitHub 仓库名称
         GIT_REPO_NAME = "git-jenkins-pipeline-project"
 
