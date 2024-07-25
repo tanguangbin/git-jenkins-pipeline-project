@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
         - name: your-app
-          image: tanguangbin1980/test:52
+          image: tanguangbin1980/test:5244
           ports:
             - containerPort: 8080
