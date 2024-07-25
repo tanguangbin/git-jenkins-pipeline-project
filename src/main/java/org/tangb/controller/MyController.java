@@ -6,12 +6,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class MyController {
-    @Value("${tangb}")
-    private String message;
+    @Value("${tangb:Hello default}")
+    private String tangb;
 
     @RequestMapping("/")
 
     public String sayHi(){
-        return "hello " + message;
+        return "hello " + tangb;
     }
 }
