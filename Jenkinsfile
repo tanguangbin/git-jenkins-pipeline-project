@@ -199,15 +199,26 @@ pipeline {
             }
          }
 
-         stage('Install yq') {
+        stage('Install yq') {
             steps {
-                sh '''
-                # 安装 yq 可执行文件（Go 版本）
-                curl -L https://github.com/mikefarah/yq/releases/download/v4.13.1/yq_linux_amd64 -o /usr/local/bin/yq
-                chmod +x /usr/local/bin/yq
-                '''
+                script {
+                    // 下载 yq 可执行文件
+                    sh '''
+                    # 删除可能存在的旧版本
+                    rm -f /usr/local/bin/yq
+
+                    # 下载 yq 可执行文件（Go 版本）
+                    curl -L https://github.com/mikefarah/yq/releases/download/v4.13.1/yq_linux_amd64 -o /usr/local/bin/yq
+
+                    # 赋予执行权限
+                    chmod +x /usr/local/bin/yq
+
+                    # 验证 yq 是否已正确安装
+                    /usr/local/bin/yq --version
+                    '''
+                }
             }
-         }
+        }
 
          stage('Extract Port from Config') {
             steps {
