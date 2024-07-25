@@ -8,7 +8,6 @@ pipeline {
         NODEPORTS_PLACEHOLDER='30011'
         LOADBALANCER_PLACEHOLDER='www.baidu.com'
         IMAGE_PLACEHOLDER="IMAGE_PLACEHOLDER"
-
         CONTAINER_NAME = 'test-container'
 
         // GitHub 仓库名称
@@ -159,8 +158,9 @@ pipeline {
                         #NODEPORT_PLACEHOLDER='30011'
                         #LOADBALANCER_PLACEHOLDER='www.baidu.com'
                         #IMAGE_PLACEHOLDER="IMAGE_PLACEHOLDER"
+                        #CONTAINER_NAME
 
-                        sed 's|IMAGE_PLACEHOLDER|${imageName}|g; s|LOADBALANCER_PLACEHOLDER|${LOADBALANCER_PLACEHOLDER}|g; s|PORT_PLACEHOLDER|${PORT_PLACEHOLDER}|g; s|NODEPORTS_PLACEHOLDER|${NODEPORTS_PLACEHOLDER}|g; s|value: \"dev\"|value: \"${springProfile}\"|g' ${K8S_TEMPLATE_NAME} > ${K8S_DEPLOYMENT_NAME}
+                        sed 's|IMAGE_PLACEHOLDER|${imageName}|g; s|CONTAINER_NAME|${CONTAINER_NAME}|g; s|LOADBALANCER_PLACEHOLDER|${LOADBALANCER_PLACEHOLDER}|g; s|PORT_PLACEHOLDER|${PORT_PLACEHOLDER}|g; s|NODEPORTS_PLACEHOLDER|${NODEPORTS_PLACEHOLDER}|g; s|value: \"dev\"|value: \"${springProfile}\"|g' ${K8S_TEMPLATE_NAME} > ${K8S_DEPLOYMENT_NAME}
                         cat ${K8S_DEPLOYMENT_NAME}
                     """
                 }
