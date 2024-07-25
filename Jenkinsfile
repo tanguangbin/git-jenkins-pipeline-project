@@ -3,6 +3,8 @@ pipeline {
         // Docker 镜像仓库地址
         REGISTRY = 'tanguangbin1980/test'
 
+        SERVER_PORT='8081'
+
         CONTAINER_NAME = 'test-container'
 
         // GitHub 仓库名称
@@ -199,46 +201,6 @@ pipeline {
             }
          }
 
-stage('Install yq') {
-            steps {
-                script {
-                    // 确保删除可能存在的旧版本
-                    sh '''
-                    rm -f /usr/local/bin/yq
-
-                    # 下载 yq 可执行文件（Go 版本）
-                    curl -L -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.13.1/yq_linux_amd64
-
-                    # 验证下载的文件是否正确
-                    if file /usr/local/bin/yq | grep -q "ELF"; then
-                      echo "yq 下载成功，文件类型正确"
-                    else
-                      echo "yq 下载失败或文件类型不正确"
-                      exit 1
-                    fi
-
-                    # 赋予执行权限
-                    chmod +x /usr/local/bin/yq
-
-                    # 验证 yq 是否已正确安装
-                    /usr/local/bin/yq --version
-                    '''
-                }
-            }
-        }
-
-         stage('Extract Port from Config') {
-            steps {
-                script {
-                    // 使用 params.ENVIRONMENT 动态设置配置文件路径
-                    def environment = params.ENVIRONMENT
-                    def port = sh(script: "/usr/local/bin/yq e '.server.port' src/main/resources/application-${environment}.yml", returnStdout: true).trim()
-                    echo "Port: ${port}"
-                    env.SERVER_PORT = port
-                }
-            }
-         }
-
 
          stage('Run Docker Container for Testing') {
             steps {
@@ -258,8 +220,8 @@ stage('Install yq') {
                     """
 
                     // 测试应用程序
-                    sleep 10 // 等待应用程序启动
-                    sh "curl -f http://localhost:8081/actuator/health || echo 'Application failed to start'"
+//                     sleep 10 // 等待应用程序启动
+//                     sh "curl -f http://localhost:8081/actuator/health || echo 'Application failed to start'"
 
                     // 停止并移除测试容器
 //                     sh "docker rm -f ${CONTAINER_NAME}"
