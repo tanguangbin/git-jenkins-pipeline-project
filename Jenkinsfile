@@ -120,7 +120,8 @@ pipeline {
                 }
             }
         }
- stage('Update Deployment File') {
+
+         stage('Update Deployment File') {
             steps {
                 withCredentials([string(credentialsId: "${GITHUB_CREDENTIALS_ID}", variable: 'GITHUB_TOKEN')]) {
                     script {
@@ -149,6 +150,10 @@ pipeline {
                     }
                 }
             }
+         }
+
+
+
 //         stage('Update Deployment File') {
 //             steps {
 //                 withCredentials([string(credentialsId: "${GITHUB_CREDENTIALS_ID}", variable: 'GITHUB_TOKEN')]) {
