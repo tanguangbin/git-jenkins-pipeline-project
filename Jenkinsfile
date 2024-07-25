@@ -136,8 +136,15 @@ pipeline {
                          #git commit -m "Update deployment image to version ${BUILD_NUMBER}"
                          #git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${params.ENVIRONMENT}
 
-                        # 创建临时分支
-                        git checkout -b $TEMP_BRANCH
+                        # 检查临时分支是否存在并切换
+                        if git rev-parse --verify ${TEMP_BRANCH}; then
+                            echo "Switching to existing branch ${TEMP_BRANCH}"
+                            git switch ${TEMP_BRANCH}
+                        else
+                            echo "Creating new branch ${TEMP_BRANCH}"
+                            git checkout -b ${TEMP_BRANCH}
+                        fi
+
                         # 提交临时文件
                         git add ${K8S_DEPLOYMENT_NAME}
                         git commit -m "Temporary commit for deployment image to version ${BUILD_NUMBER}"
