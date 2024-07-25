@@ -30,9 +30,7 @@ pipeline {
         //构建 Docker 镜像，并更新 Kubernetes 配置文件。特别地，将 k8s-deployment.yaml 文件的更新提交到临时分支
         //ARGO-CD-FETCH-BRANCH，该分支专门供 Argo CD 使用，以便部署到 Kubernetes 集群中。这种做法避免了对开发主分支的干扰。
         TEMP_BRANCH="ARGO-CD-FETCH-BRANCH"
-
-        // 动态分配的 Git 分支名
-        BRANCH_NAME = ''
+        BRANCH_NAME=''
     }
 
     agent any
@@ -50,7 +48,7 @@ pipeline {
             steps {
                 script {
                     echo "9999999999Selected branch: ${params.ENVIRONMENT}"
-                          def branch = ""
+                        def branch = ""
                         if (params.ENVIRONMENT == 'prod') {
                             branch = 'main'
                         } else if (params.ENVIRONMENT == 'test') {
@@ -71,11 +69,8 @@ pipeline {
 //                     echo "9999999999Selected env.BRANCH_NAME: ${env.BRANCH_NAME}"
 
                     // 设置全局环境变量
-                    BRANCH_NAME = branch
+                    env.BRANCH_NAME = branch
 
-                    echo "9999999999Selected env.BRANCH_NAME: ${env.BRANCH_NAME}"
-//                     echo "9999999999Selected BRANCH_NAME: ${BRANCH_NAME}"
-                    echo "9999999999Selected branch: ${branch}"
                 }
             }
         }
@@ -91,6 +86,7 @@ pipeline {
 //                     } else if (params.ENVIRONMENT == 'dev') {
 //                         branch = 'dev'
 //                     }
+                     echo "88888888Selected env.BRANCH_NAME: ${env.BRANCH_NAME}"
                     git branch: "${env.BRANCH_NAME}", url: "https://github.com/tanguangbin/${GIT_REPO_NAME}.git"
                 }
             }
