@@ -142,6 +142,8 @@ pipeline {
                     def imageName = "${env.DOCKER_IMAGE_NAME}"
                     def springProfile = params.ENVIRONMENT
                     sh """
+                        # 方式1：docker run -e SPRING_PROFILES_ACTIVE=dev -p 8081:8081 my-application
+                        # 方式2： kubectl apply -f xxx 会自动加载 SPRING_PROFILES_ACTIVE 对应的值dev test prod
                         sed 's|IMAGE_PLACEHOLDER|${imageName}|g; s|value: \"dev\"|value: \"${springProfile}\"|g' ${K8S_TEMPLATE_NAME} > ${K8S_DEPLOYMENT_NAME}
                         cat ${K8S_DEPLOYMENT_NAME}
                     """
