@@ -30,7 +30,7 @@ pipeline {
         //构建 Docker 镜像，并更新 Kubernetes 配置文件。特别地，将 k8s-deployment.yaml 文件的更新提交到临时分支
         //ARGO-CD-FETCH-BRANCH，该分支专门供 Argo CD 使用，以便部署到 Kubernetes 集群中。这种做法避免了对开发主分支的干扰。
         TEMP_BRANCH="ARGO-CD-FETCH-BRANCH"
-        BRANCH_NAME=''
+
     }
 
     agent any
@@ -44,41 +44,11 @@ pipeline {
     }
 
     stages {
-        stage('Determine Branch Name') {
-            steps {
-                script {
-                    echo "9999999999Selected branch: ${params.ENVIRONMENT}"
-                        def branch = ""
-                        if (params.ENVIRONMENT == 'prod') {
-                            branch = 'main'
-                        } else if (params.ENVIRONMENT == 'test') {
-                            branch = 'test'
-                        } else if (params.ENVIRONMENT == 'dev') {
-                            branch = 'dev'
-                        }
-                    // 根据选择的环境动态分配分支名
-//                    if (params.ENVIRONMENT == 'prod') {
-//                        env.BRANCH_NAME = 'main'
-//                    } else if (params.ENVIRONMENT == 'test') {
-//                        env.BRANCH_NAME = 'test'
-//                    } else if (params.ENVIRONMENT == 'dev') {
-//                        env.BRANCH_NAME = 'dev'
-//                    } else {
-//                        env.BRANCH_NAME = 'unknown'
-//                    }
-//                     echo "9999999999Selected env.BRANCH_NAME: ${env.BRANCH_NAME}"
-
-                    // 设置全局环境变量
-                    env.BRANCH_NAME = branch
-
-                }
-            }
-        }
         stage('Clone Repository') {
             steps {
                 script {
                     // 根据选择的环境动态选择分支
-//                       def branch = "${env.BRANCH_NAME}"
+                    def branch = params.ENVIRONMENT == 'prod' ? 'main' : params.ENVIRONMENT
 //                     if (params.ENVIRONMENT == 'prod') {
 //                         branch = 'main'
 //                     } else if (params.ENVIRONMENT == 'test') {
@@ -86,8 +56,8 @@ pipeline {
 //                     } else if (params.ENVIRONMENT == 'dev') {
 //                         branch = 'dev'
 //                     }
-                     echo "88888888Selected env.BRANCH_NAME: ${env.BRANCH_NAME}"
-                    git branch: "${env.BRANCH_NAME}", url: "https://github.com/tanguangbin/${GIT_REPO_NAME}.git"
+
+                    git branch: branch, url: "https://github.com/tanguangbin/${GIT_REPO_NAME}.git"
                 }
             }
         }
@@ -175,9 +145,10 @@ pipeline {
                     git commit -m "Temporary commit for deployment image to version ${BUILD_NUMBER}"
                     git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} $TEMP_BRANCH
 
-                    # 返回原始分支
-                    git checkout ${env.BRANCH_NAME}
-                    git branch -D $TEMP_BRANCH
+                    # 如果需要 返回原始分支
+                    // 根据选择的环境动态选择分支
+                    def branch = params.ENVIRONMENT == 'prod' ? 'main' : params.ENVIRONMENT
+                    git checkout branch
 
                     """
                 }
