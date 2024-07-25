@@ -150,6 +150,9 @@ pipeline {
 
                         #产出docker中本地的git分支，避免冲突
                         git branch -D ${TEMP_BRANCH}
+                        # 等待 5 秒
+                        sh 'sleep 5'
+                        git checkout -b ${TEMP_BRANCH}
                         # 提交临时文件
                         git add ${K8S_DEPLOYMENT_NAME}
                         git commit -m "Temporary commit for deployment image to version ${BUILD_NUMBER}"
