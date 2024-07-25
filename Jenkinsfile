@@ -87,7 +87,7 @@ pipeline {
             steps {
                 script {
                     env.DOCKER_IMAGE_NAME = "${REGISTRY}-${params.ENVIRONMENT}:${env.BUILD_NUMBER}"
-                    DOCKER_IMAGE = docker.build(${env.DOCKER_IMAGE_NAME}")
+                    DOCKER_IMAGE = docker.build("${env.DOCKER_IMAGE_NAME}")
                 }
             }
         }
