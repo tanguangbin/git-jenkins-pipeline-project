@@ -3,7 +3,11 @@ pipeline {
         // Docker 镜像仓库地址
         REGISTRY = 'tanguangbin1980/test'
 
-        SERVER_PORT='8081'
+        //K8S 文件相关变量
+        PORT_PLACEHOLDER='8081'
+        NODEPORT_PLACEHOLDER='30011'
+        LOADBALANCER_PLACEHOLDER='www.baidu.com'
+        IMAGE_PLACEHOLDER="IMAGE_PLACEHOLDER"
 
         CONTAINER_NAME = 'test-container'
 
@@ -38,7 +42,7 @@ pipeline {
         GIT_USER_EMAIL="ADMIN@gmail.com"
         GIT_USERNAME="ADMIN"
 
-        IMAGE_PLACEHOLDER="IMAGE_PLACEHOLDER"
+
 
         TRIVY_REPORT_PATH = 'trivy-report.json'  // Trivy 报告文件路径
 
@@ -150,7 +154,13 @@ pipeline {
                     sh """
                         # 方式1：docker run -e SPRING_PROFILES_ACTIVE=dev -p 8081:8081 my-application
                         # 方式2： kubectl apply -f xxx 会自动加载 SPRING_PROFILES_ACTIVE 对应的值dev test prod
-                        sed 's|IMAGE_PLACEHOLDER|${imageName}|g; s|value: \"dev\"|value: \"${springProfile}\"|g' ${K8S_TEMPLATE_NAME} > ${K8S_DEPLOYMENT_NAME}
+                        #K8S 文件相关变量
+                        #PORT_PLACEHOLDER='8081'
+                        #NODEPORT_PLACEHOLDER='30011'
+                        #LOADBALANCER_PLACEHOLDER='www.baidu.com'
+                        #IMAGE_PLACEHOLDER="IMAGE_PLACEHOLDER"
+
+                        sed 's|IMAGE_PLACEHOLDER|${imageName}|g; s|LOADBALANCER_PLACEHOLDER|${LOADBALANCER_PLACEHOLDER}|g; s|PORT_PLACEHOLDER|${PORT_PLACEHOLDER}|g; s|NODEPORT_PLACEHOLDER|${NODEPORT_PLACEHOLDER}|g; s|value: \"dev\"|value: \"${springProfile}\"|g' ${K8S_TEMPLATE_NAME} > ${K8S_DEPLOYMENT_NAME}
                         cat ${K8S_DEPLOYMENT_NAME}
                     """
                 }

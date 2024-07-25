@@ -22,3 +22,33 @@ spec:
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: "dev"  # 默认设置为 dev，可以在 Jenkinsfile 中动态修改
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: your-app-service-nodeport
+spec:
+  type: NodePort
+  ports:
+    - port: PORT_PLACEHOLDER  # Service 的端口
+      targetPort: PORT_PLACEHOLDER  # 容器中的端口
+      nodePort: NODEPORT_PLACEHOLDER  # 在每个 Node 上的端口（30000-32767）
+  selector:
+    app: your-app
+---
+
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: your-app-ingressroute
+  namespace: default
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`LOADBALANCER_PLACEHOLDER`)
+      kind: Rule
+      services:
+        - name: your-app-service
+          port: PORT_PLACEHOLDER
