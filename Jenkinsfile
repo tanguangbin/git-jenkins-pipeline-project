@@ -159,7 +159,7 @@ pipeline {
                         # 提交临时文件
                         git add ${K8S_DEPLOYMENT_NAME}
                         git commit -m "Temporary commit for deployment image to version ${BUILD_NUMBER}"
-                        git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} $TEMP_BRANCH
+                        git push -f https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} $TEMP_BRANCH
 
                         #产出docker中本地的git分支，避免冲突
                         #git branch -D ${TEMP_BRANCH}
