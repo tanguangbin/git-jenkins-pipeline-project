@@ -154,8 +154,8 @@ pipeline {
                         # 等待 5 秒
                         sleep 2
                         git checkout -b ${TEMP_BRANCH}
-                        git pull
-                        sleep 5
+                        #git pull
+                        #sleep 5
                         # 提交临时文件
                         git add ${K8S_DEPLOYMENT_NAME}
                         git commit -m "Temporary commit for deployment image to version ${BUILD_NUMBER}"
