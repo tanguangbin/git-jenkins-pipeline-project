@@ -199,16 +199,23 @@ pipeline {
             }
          }
 
-        stage('Install yq') {
+stage('Install yq') {
             steps {
                 script {
-                    // 下载 yq 可执行文件
+                    // 确保删除可能存在的旧版本
                     sh '''
-                    # 删除可能存在的旧版本
                     rm -f /usr/local/bin/yq
 
                     # 下载 yq 可执行文件（Go 版本）
-                    curl -L https://github.com/mikefarah/yq/releases/download/v4.13.1/yq_linux_amd64 -o /usr/local/bin/yq
+                    curl -L -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.13.1/yq_linux_amd64
+
+                    # 验证下载的文件是否正确
+                    if file /usr/local/bin/yq | grep -q "ELF"; then
+                      echo "yq 下载成功，文件类型正确"
+                    else
+                      echo "yq 下载失败或文件类型不正确"
+                      exit 1
+                    fi
 
                     # 赋予执行权限
                     chmod +x /usr/local/bin/yq
