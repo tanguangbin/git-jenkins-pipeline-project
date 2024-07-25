@@ -1,0 +1,4 @@
+server:
+  port: 8081
+  servlet:
+    application-display-name: test-jenkins-ci/cd

@@ -3,6 +3,13 @@ pipeline {
         // Docker 镜像仓库地址
         REGISTRY = 'tanguangbin1980/test'
 
+        //K8S 文件相关变量
+        PORT_PLACEHOLDER='8081'
+        NODEPORTS_PLACEHOLDER='30011'
+        LOADBALANCER_PLACEHOLDER='www.baidu.com'
+        IMAGE_PLACEHOLDER="IMAGE_PLACEHOLDER"
+        CONTAINER_NAME = 'test-container'
+
         // GitHub 仓库名称
         GIT_REPO_NAME = "git-jenkins-pipeline-project"
 
@@ -34,7 +41,7 @@ pipeline {
         GIT_USER_EMAIL="ADMIN@gmail.com"
         GIT_USERNAME="ADMIN"
 
-        IMAGE_PLACEHOLDER="IMAGE_PLACEHOLDER"
+
 
         TRIVY_REPORT_PATH = 'trivy-report.json'  // Trivy 报告文件路径
 
@@ -131,12 +138,12 @@ pipeline {
 //             }
 //         }
 
-        stage('Remove Unused Docker Image') {
-            steps {
-
-                sh "docker rmi ${env.DOCKER_IMAGE_NAME}"
-            }
-        }
+//         stage('Remove Unused Docker Image') {
+//             steps {
+//
+//                 sh "docker rmi ${env.DOCKER_IMAGE_NAME}"
+//             }
+//         }
 
         stage('Update k8s YAML') {
             steps {
@@ -146,7 +153,14 @@ pipeline {
                     sh """
                         # 方式1：docker run -e SPRING_PROFILES_ACTIVE=dev -p 8081:8081 my-application
                         # 方式2： kubectl apply -f xxx 会自动加载 SPRING_PROFILES_ACTIVE 对应的值dev test prod
-                        sed 's|IMAGE_PLACEHOLDER|${imageName}|g; s|value: \"dev\"|value: \"${springProfile}\"|g' ${K8S_TEMPLATE_NAME} > ${K8S_DEPLOYMENT_NAME}
+                        #K8S 文件相关变量
+                        #PORT_PLACEHOLDER='8081'
+                        #NODEPORT_PLACEHOLDER='30011'
+                        #LOADBALANCER_PLACEHOLDER='www.baidu.com'
+                        #IMAGE_PLACEHOLDER="IMAGE_PLACEHOLDER"
+                        #CONTAINER_NAME
+
+                        sed 's|IMAGE_PLACEHOLDER|${imageName}|g; s|CONTAINER_NAME|${CONTAINER_NAME}|g; s|LOADBALANCER_PLACEHOLDER|${LOADBALANCER_PLACEHOLDER}|g; s|PORT_PLACEHOLDER|${PORT_PLACEHOLDER}|g; s|NODEPORTS_PLACEHOLDER|${NODEPORTS_PLACEHOLDER}|g; s|value: \"dev\"|value: \"${springProfile}\"|g' ${K8S_TEMPLATE_NAME} > ${K8S_DEPLOYMENT_NAME}
                         cat ${K8S_DEPLOYMENT_NAME}
                     """
                 }
@@ -197,6 +211,33 @@ pipeline {
             }
          }
 
+
+         stage('Run Docker Container for Testing') {
+            steps {
+                script {
+                    def dockerImageTag = "${env.DOCKER_IMAGE_NAME}"
+
+                    // 停止并移除之前的容器（如果存在）
+                    sh "docker rm -f ${CONTAINER_NAME} || true"
+
+                    // 运行容器并指定 Spring Profile
+                    sh """
+                    docker run --name ${CONTAINER_NAME} -d \
+                        -e SPRING_PROFILES_ACTIVE=${params.ENVIRONMENT} \
+                        -e SERVER_PORT=${PORT_PLACEHOLDER} \
+                        -p ${PORT_PLACEHOLDER}:${PORT_PLACEHOLDER} \
+                        ${dockerImageTag}
+                    """
+
+                    // 测试应用程序
+//                     sleep 10 // 等待应用程序启动
+//                     sh "curl -f http://localhost:8081/actuator/health || echo 'Application failed to start'"
+
+                    // 停止并移除测试容器
+//                     sh "docker rm -f ${CONTAINER_NAME}"
+                }
+            }
+        }
 
 
 //         stage('Update Deployment File') {
