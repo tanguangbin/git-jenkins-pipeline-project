@@ -212,11 +212,11 @@ pipeline {
          stage('Extract Port from Config') {
             steps {
                 script {
-                    // 假设配置文件路径为 src/main/resources/application-dev.yml
-                    def environment = ${params.ENVIRONMENT}
+                    // 使用 params.ENVIRONMENT 动态设置配置文件路径
+                    def environment = params.ENVIRONMENT
                     def port = sh(script: "/usr/local/bin/yq e '.server.port' src/main/resources/application-${environment}.yml", returnStdout: true).trim()
                     echo "Port: ${port}"
-                    env.SERVER_PORT=port
+                    env.SERVER_PORT = port
                 }
             }
          }
