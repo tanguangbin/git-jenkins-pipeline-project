@@ -32,7 +32,7 @@ pipeline {
         TEMP_BRANCH="ARGO-CD-FETCH-BRANCH"
 
         // 动态分配的 Git 分支名
-        BRANCH_NAME = ""
+        BRANCH_NAME = ''
     }
 
     agent any
@@ -59,22 +59,22 @@ pipeline {
                             branch = 'dev'
                         }
                     // 根据选择的环境动态分配分支名
-                   if (params.ENVIRONMENT == 'prod') {
-                       env.BRANCH_NAME = 'main'
-                   } else if (params.ENVIRONMENT == 'test') {
-                       env.BRANCH_NAME = 'test'
-                   } else if (params.ENVIRONMENT == 'dev') {
-                       env.BRANCH_NAME = 'dev'
-                   } else {
-                       env.BRANCH_NAME = 'unknown'
-                   }
-                    echo "9999999999Selected env.BRANCH_NAME: ${env.BRANCH_NAME}"
+//                    if (params.ENVIRONMENT == 'prod') {
+//                        env.BRANCH_NAME = 'main'
+//                    } else if (params.ENVIRONMENT == 'test') {
+//                        env.BRANCH_NAME = 'test'
+//                    } else if (params.ENVIRONMENT == 'dev') {
+//                        env.BRANCH_NAME = 'dev'
+//                    } else {
+//                        env.BRANCH_NAME = 'unknown'
+//                    }
+//                     echo "9999999999Selected env.BRANCH_NAME: ${env.BRANCH_NAME}"
 
                     // 设置全局环境变量
-                    env.BRANCH_NAME = branch
+                    BRANCH_NAME = branch
 
                     echo "9999999999Selected env.BRANCH_NAME: ${env.BRANCH_NAME}"
-                    echo "9999999999Selected BRANCH_NAME: ${BRANCH_NAME}"
+//                     echo "9999999999Selected BRANCH_NAME: ${BRANCH_NAME}"
                     echo "9999999999Selected branch: ${branch}"
                 }
             }
