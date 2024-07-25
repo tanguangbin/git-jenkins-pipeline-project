@@ -199,6 +199,28 @@ pipeline {
             }
          }
 
+         stage('Install yq') {
+            steps {
+                sh '''
+                # 安装 yq 可执行文件（Go 版本）
+                wget https://github.com/mikefarah/yq/releases/download/v4.13.1/yq_linux_amd64 -O /usr/local/bin/yq
+                chmod +x /usr/local/bin/yq
+                '''
+            }
+         }
+
+         stage('Extract Port from Config') {
+            steps {
+                script {
+                    // 假设配置文件路径为 src/main/resources/application-dev.yml
+                    def environment = ${params.ENVIRONMENT}
+                    def port = sh(script: "/usr/local/bin/yq e '.server.port' src/main/resources/application-${environment}.yml", returnStdout: true).trim()
+                    echo "Port: ${port}"
+                    env.SERVER_PORT=port
+                }
+            }
+         }
+
 
          stage('Run Docker Container for Testing') {
             steps {
@@ -212,7 +234,8 @@ pipeline {
                     sh """
                     docker run --name ${CONTAINER_NAME} -d \
                         -e SPRING_PROFILES_ACTIVE=${params.ENVIRONMENT} \
-                        -p 8081:8081 \
+                        -e SERVER_PORT=${env.SERVER_PORT} \
+                        -p ${env.SERVER_PORT}:${env.SERVER_PORT} \
                         ${dockerImageTag}
                     """
 
