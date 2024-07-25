@@ -162,7 +162,7 @@ pipeline {
                         git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} $TEMP_BRANCH
 
                         #产出docker中本地的git分支，避免冲突
-//                         git branch -D ${TEMP_BRANCH}
+                        #git branch -D ${TEMP_BRANCH}
 
                         # 如果需要 返回原始分支
                         # 根据选择的环境动态选择分支
