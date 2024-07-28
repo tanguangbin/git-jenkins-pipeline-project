@@ -33,20 +33,3 @@ spec:
       nodePort: 30011  # 在每个 Node 上的端口（30000-32767）
   selector:
     app: test-container
----
-
----
-apiVersion: traefik.containo.us/v1alpha1
-kind: IngressRoute
-metadata:
-  name: test-container-ingressroute
-  namespace: default
-spec:
-  entryPoints:
-    - web
-  routes:
-    - match: Host(`www.baidu.com`)
-      kind: Rule
-      services:
-        - name: test-container-service
-          port: 8081
