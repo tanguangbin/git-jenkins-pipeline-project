@@ -136,22 +136,22 @@ pipeline {
 //             }
 //         }
 
-//         stage('Push Docker Image') {
-//             steps {
-//                 script {
-//                     docker.withRegistry('', REGISTRY_CREDENTIAL) {
-//                         DOCKER_IMAGE.push()
-//                     }
-//                 }
-//             }
-//         }
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('', REGISTRY_CREDENTIAL) {
+                        DOCKER_IMAGE.push()
+                    }
+                }
+            }
+        }
 
-//         stage('Remove Unused Docker Image') {
-//             steps {
-//
-//                 sh "docker rmi ${env.DOCKER_IMAGE_NAME}"
-//             }
-//         }
+        stage('Remove Unused Docker Image') {
+            steps {
+
+                sh "docker rmi ${env.DOCKER_IMAGE_NAME}"
+            }
+        }
 
         stage('Update k8s YAML') {
             steps {
