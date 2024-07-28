@@ -1,24 +1,52 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: your-app-deployment
+  name: CONTAINER_NAME-deployment
   labels:
-    app: your-app
+    app: CONTAINER_NAME
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: your-app
+      app: CONTAINER_NAME
   template:
     metadata:
       labels:
-        app: your-app
+        app: CONTAINER_NAME
     spec:
       containers:
-        - name: your-app
-          image: IMAGE_PLACEHOLDER  # 这里会被 Jenkins 替换为实际的镜像名称
-          ports:
-            - containerPort: 8081
+        - name: CONTAINER_NAME
+          image: IMAGE_PLACEHOLDER  # 这里会被 Jenkins 替换为实际的镜像名称       
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: "dev"  # 默认设置为 dev，可以在 Jenkinsfile 中动态修改
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: CONTAINER_NAME-service
+spec:
+  type: NodePort
+  ports:
+    - port: PORT_PLACEHOLDER  # Service 的端口
+      targetPort: PORT_PLACEHOLDER  # 容器中的端口
+      nodePort: NODEPORTS_PLACEHOLDER  # 在每个 Node 上的端口（30000-32767）
+  selector:
+    app: CONTAINER_NAME
+---
+
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: CONTAINER_NAME-ingressroute
+  namespace: default
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`LOADBALANCER_PLACEHOLDER`)
+      kind: Rule
+      services:
+        - name: CONTAINER_NAME-service
+          port: PORT_PLACEHOLDER

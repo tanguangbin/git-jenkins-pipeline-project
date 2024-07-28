@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.tangb.mapper.UserMapper">
+
+    <!-- 基本的CRUD操作会由MyBatis Plus自动提供 -->
+
+    <!-- 这里是自定义的SQL语句 -->
+
+    <!-- 查询所有用户的ID和用户名 -->
+    <select id="selectAllUsers" resultType="org.tangb.modules.User">
+        SELECT id, username, nickname
+        FROM system_users
+    </select>
+
+    <!-- 按用户名模糊查询 -->
+    <select id="selectByUsernameLike" resultType="org.tangb.modules.User">
+        SELECT id, username, nickname
+        FROM system_users
+        WHERE username LIKE #{username}
+    </select>
+
+    <!-- 更新用户的昵称 -->
+    <update id="updateNicknameById">
+        UPDATE system_users
+        SET nickname = CONCAT(nickname, #{str})
+        ${ew.customSqlSegment}
+    </update>
+
+</mapper>
