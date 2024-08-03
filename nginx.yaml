@@ -5,7 +5,7 @@ metadata:
   labels:
     app: nginx
 spec:
-  replicas: 2  # 指定两个副本，以提高高可用性
+  replicas: 1  # 指定两个副本，以提高高可用性
   selector:
     matchLabels:
       app: nginx
