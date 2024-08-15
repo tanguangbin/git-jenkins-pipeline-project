@@ -160,21 +160,20 @@ pipeline {
 
                        def checkIndexExists = sh(
                            script: """
-                           curl -s "${env.ES_HOST}/_cat/indices/${indexName}?h=index" | grep -w ${indexName}
+                           curl -s "${env.ES_HOST}/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
                            """,
                            returnStatus: true
                        )
-                       echo "checkIndexExists =======  ${checkIndexExists}"
-
-                       if (checkIndexExists == 0 || checkIndexExists == "0") {
-                        echo "Index ${indexName} does not exist. Creating index."
-                        def response = sh(script: """
-                        curl -X PUT "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
-                        """, returnStdout: true).trim()
-
-                        echo "Index creation response for ${indexName}: ${response}"
+                       echo "checkIndexExists ======: ${checkIndexExists}"
+                       if (checkIndexExists == 0) {
+                           echo "Index ${indexName} already exists. Skipping creation."
                        } else {
-                         echo "Index ${indexName} already exists. Skipping creation."
+                           echo "Creating index: ${indexName}"
+                           def response = sh(script: """
+                           curl -X PUT "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
+                           """, returnStdout: true).trim()
+
+                           echo "Index creation response for ${indexName}: ${response}"
                        }
 
                     }
