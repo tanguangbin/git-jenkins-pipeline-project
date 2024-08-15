@@ -94,6 +94,7 @@ pipeline {
 
                     // 读取相应环境的配置文件
                      def config = readYaml file: "./target/classes/application-${params.ENVIRONMENT}.yml"
+                     echo "开始读取文件 ${"./target/classes/application-${params.ENVIRONMENT}.yml"}"
                     // 输出读取到的内容
                     echo "YAML Content: ${config}"
 
