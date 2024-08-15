@@ -158,24 +158,26 @@ pipeline {
                         def indexName = file.name.replace('.json', '')
                         echo "Processing index: ${indexName}"
 
-                       def checkIndexExists = sh(
-                           script: """
-                           curl -s "${env.ES_HOST}/_cat/indices/${indexName}?h=index" | grep -w ${indexName}
-                           """,
-                           returnStatus: true
-                       )
-                       echo "checkIndexExists =======  ${checkIndexExists}"
+                        def checkIndexExists = sh(
+                            script: """
+                            curl -s -o /dev/null -w "%{http_code}" -X HEAD ${env.ES_HOST}/${indexName}
+                            """,
+                            returnStdout: true
+                        ).trim()
 
-                       if (checkIndexExists == "not_found" || checkIndexExists == "") {
-                        echo "Index ${indexName} does not exist. Creating index."
-                        def response = sh(script: """
-                        curl -X PUT "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
-                        """, returnStdout: true).trim()
+                        if (checkIndexExists == '200') {
+                            echo "Index ${indexName} already exists. Skipping creation."
+                        } else if (checkIndexExists == '404') {
+                            echo "Index ${indexName} does not exist. Creating index."
+                            def response = sh(script: """
+                            curl -X PUT "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
+                            """, returnStdout: true).trim()
 
-                        echo "Index creation response for ${indexName}: ${response}"
-                       } else {
-                         echo "Index ${indexName} already exists. Skipping creation."
-                       }
+                            echo "Index creation response for ${indexName}: ${response}"
+                        } else {
+                            echo "Unexpected HTTP response code: ${checkIndexExists}. Please check the Elasticsearch server."
+                        }
+
 
                     }
                 }
