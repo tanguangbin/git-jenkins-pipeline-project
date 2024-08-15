@@ -2,14 +2,11 @@ spring:
   application:
     name: git-jenkins-test
 
-
 server:
   port: 8082
   nodeport: 30011
 
-tangb: dev12345
-application:
-  name: git-jenkins-test
+tangb: dev
 
 mybatis-plus:
   configuration:
