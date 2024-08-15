@@ -56,6 +56,11 @@ pipeline {
 
         TRIVY_REPORT_PATH = 'trivy-report.json'  // Trivy 报告文件路径
 
+        /**
+         * elasticsearch 配置
+        */
+        ES_BASE_DIR = "elasticsearch"
+
     }
 
     agent any
@@ -146,8 +151,7 @@ pipeline {
         stage('Check and Create Elasticsearch Indices') {
             steps {
                 script {
-                    def basePath = "elasticsearch/"
-                    def createFiles = findFiles(glob: "${basePath}**/create/*.json")
+                    def createFiles = findFiles(glob: "${ES_BASE_DIR}**/create/*.json")
 
                     createFiles.each { file ->
                         // 去掉 .json 扩展名，得到索引名称
@@ -180,10 +184,9 @@ pipeline {
        stage('Update Elasticsearch Mappings') {
            steps {
                script {
-                   def basePath = "elasticsearch/${params.ENVIRONMENT}/"
 
                    // 查找 update 文件夹下的所有 JSON 文件
-                   def updateFiles = findFiles(glob: "${basePath}*/update/*.json")
+                   def updateFiles = findFiles(glob: "${ES_BASE_DIR}**/update/*.json")
                    updateFiles.each { file ->
                        // 提取索引名称
                        def indexName = file.path.split('/')[2]
