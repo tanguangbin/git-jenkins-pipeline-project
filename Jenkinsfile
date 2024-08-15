@@ -78,6 +78,7 @@ pipeline {
 //                     } else if (params.ENVIRONMENT == 'dev') {
 //                         branch = 'dev'
 //                     }
+                    echo "当前选择的分支为： ${branch}  项目名为： ${GIT_REPO_NAME}.git"
 
                     git branch: branch, url: "https://github.com/tanguangbin/${GIT_REPO_NAME}.git"
                 }
