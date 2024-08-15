@@ -156,13 +156,14 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: ELASTIC_CREDENTIALS_ID, passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
                         def files = findFiles(glob: "${ES_BASE_DIR}**/create/*.json")
                         files.each { file ->
-                            // 去掉 .json 扩展名，得到索引名称
-                            def indexName = file.name.replace('.json', '')
-                            echo "Processing index: ${indexName}"
-
+                           // 去掉 .json 扩展名，得到索引名称
+                           def indexName = file.name.replace('.json', '')
+                           echo "Processing index: ${indexName}"
+                           def esHost = "${env.ES_HOST}" // 使用局部变量代替全局环境变量
+                           def esAuth = "$ES_USERNAME:$ES_PASSWORD"
                            def checkIndexExists = sh(
                                script: """
-                               curl -s -u "$ES_USERNAME:$ES_PASSWORD" "${env.ES_HOST}/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
+                               curl -s -u "$esHost" "$esAuth/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
                                """,
                                returnStatus: true
                            )
@@ -173,7 +174,7 @@ pipeline {
                            } else {// 1 没有找到索引
                                echo "Creating index: ${indexName}"
                                def response = sh(script: """
-                               curl -X PUT -u ${ES_USERNAME}:${ES_PASSWORD} "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
+                               curl -X PUT -u "$esHost" "$esAuth/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
                                """, returnStdout: true).trim()
 
                                echo "Index creation response for ${indexName}: ${response}"
@@ -196,9 +197,13 @@ pipeline {
                            // 根据文件名提取索引名称和更新名称
                            def (indexName, updateName) = file.name.replace('.json', '').split('-')
                            echo "Processing update for index: ${indexName} with update: ${updateName}"
+
+                           def esHost = "${env.ES_HOST}" // 使用局部变量代替全局环境变量
+                           def esAuth = "$ES_USERNAME:$ES_PASSWORD"
+
                            def checkIndexExists = sh(
                                script: """
-                               curl -s -u "$ES_USERNAME:$ES_PASSWORD" "${env.ES_HOST}/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
+                               curl -s -u "$esHost" "$esHost/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
                                """,
                                returnStatus: true
                            )
@@ -208,7 +213,7 @@ pipeline {
                               // 索引存在，更新映射
                               echo "Updating index: ${indexName} with file: ${file.name}"
                               def response = sh(script: """
-                              curl -X PUT -u "$ES_USERNAME:$ES_PASSWORD" "${env.ES_HOST}/${indexName}/_mapping" -H 'Content-Type: application/json' -d @${file.path}
+                              curl -X PUT -u "$esHost" "$esHost/${indexName}/_mapping" -H 'Content-Type: application/json' -d @${file.path}
                               """, returnStdout: true).trim()
                               echo "Mapping update response for ${indexName}: ${response}"
                            } else {
