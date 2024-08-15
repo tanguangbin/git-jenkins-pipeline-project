@@ -85,17 +85,17 @@ pipeline {
             }
         }
 
-        stage('Build with Maven') {
-            steps {
-                script {
-                    // 根据环境设置不同的Maven命令
-//                     def mavenGoal = params.ENVIRONMENT == 'prod' ? 'clean package -Pproduction' : 'clean package'
-//                     sh "mvn ${mavenGoal}"
-                    def profile = params.ENVIRONMENT
-                    sh "mvn clean package -P${profile}"
-                }
-            }
-        }
+//         stage('Build with Maven') {
+//             steps {
+//                 script {
+//                     // 根据环境设置不同的Maven命令
+// //                     def mavenGoal = params.ENVIRONMENT == 'prod' ? 'clean package -Pproduction' : 'clean package'
+// //                     sh "mvn ${mavenGoal}"
+//                     def profile = params.ENVIRONMENT
+//                     sh "mvn clean package -P${profile}"
+//                 }
+//             }
+//         }
 
         // stage('Sonarqube Static Code Analysis') {
         //   environment {
@@ -127,8 +127,9 @@ pipeline {
             steps {
                 script {
 //                     def basePath = "elasticsearch/${params.ENVIRONMENT}/"
+                    sh 'ls -al'
                     def basePath = "elasticsearch/"
-                    def createFiles = findFiles(glob: "${basePath}*/create/*.json")
+                    def createFiles = findFiles(glob: "${basePath}**/create/*.json")
                     echo "====================findFiles : ${createFiles}"
                     createFiles.each { file ->
                         def indexName = file.path.split('/')[2]
