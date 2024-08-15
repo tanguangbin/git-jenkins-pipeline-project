@@ -1,21 +1,52 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: your-app-deployment
+  name: git-jenkins-test-deployment
   labels:
-    app: your-app
+    app: git-jenkins-test
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: your-app
+      app: git-jenkins-test
   template:
     metadata:
       labels:
-        app: your-app
+        app: git-jenkins-test
     spec:
       containers:
-        - name: your-app
-          image: tanguangbin1980/test:84
-          ports:
-            - containerPort: 8080
+        - name: git-jenkins-test
+          image: tanguangbin1980/test-dev:54  # 这里会被 Jenkins 替换为实际的镜像名称       
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "dev"  # 默认设置为 dev，可以在 Jenkinsfile 中动态修改
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: git-jenkins-test-service
+spec:
+  type: NodePort
+  ports:
+    - port: 8082  # Service 的端口
+      targetPort: 8082  # 容器中的端口
+      nodePort: 30011  # 在每个 Node 上的端口（30000-32767）
+  selector:
+    app: git-jenkins-test
+---
+
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: git-jenkins-test-ingressroute
+  namespace: default
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`www.baidu.com`)
+      kind: Rule
+      services:
+        - name: git-jenkins-test-service
+          port: 8082
