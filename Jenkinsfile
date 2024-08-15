@@ -159,10 +159,11 @@ pipeline {
                         echo "Processing index: ${indexName}"
 
                         // 检查索引是否存在
-                        def checkIndexExists = sh(
-                            script: "curl -s -o /dev/null -w '%{http_code}' -X HEAD ${env.ES_HOST}/${indexName}",
-                            returnStdout: true
-                        ).trim()
+                        def checkIndexExists = '400'
+//                         def checkIndexExists = sh(
+//                             script: "curl -s -o /dev/null -w '%{http_code}' -X HEAD ${env.ES_HOST}/${indexName}",
+//                             returnStdout: true
+//                         ).trim()
 
                         if (checkIndexExists == '200') {
                             // 索引已存在，输出提示信息
