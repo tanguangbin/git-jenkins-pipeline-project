@@ -165,9 +165,10 @@ pipeline {
                            returnStatus: true
                        )
                        echo "checkIndexExists ======: ${checkIndexExists}"
+                       // 0 找到索引 1 没有找到索引
                        if (checkIndexExists == 0) {
                            echo "Index ${indexName} already exists. Skipping creation."
-                       } else {
+                       } else {// 1 没有找到索引
                            echo "Creating index: ${indexName}"
                            def response = sh(script: """
                            curl -X PUT "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
@@ -189,9 +190,9 @@ pipeline {
                     def files = findFiles(glob: "${ES_BASE_DIR}**/update/*.json")
 
                     files.each { file ->
-                        // 去掉 .json 扩展名，得到索引名称
-                        def indexName = file.name.replace('.json', '')
-                        echo "Processing index: ${indexName}"
+                       // 根据文件名提取索引名称和更新名称
+                       def (indexName, updateName) = file.name.replace('.json', '').split('-')
+                       echo "Processing update for index: ${indexName} with update: ${updateName}"
                        def checkIndexExists = sh(
                            script: """
                            curl -s "${env.ES_HOST}/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
@@ -199,7 +200,8 @@ pipeline {
                            returnStatus: true
                        )
                        echo "checkIndexExists ======: ${checkIndexExists}"
-                       if (checkIndexExists == 0) {
+                       //0 没有找到索引 1 为有索引
+                       if (checkIndexExists == 1) {
                           // 索引存在，更新映射
                           echo "Updating index: ${indexName} with file: ${file.name}"
                           def response = sh(script: """
