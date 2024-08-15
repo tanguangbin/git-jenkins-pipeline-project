@@ -107,29 +107,27 @@ pipeline {
         stage('Setup ES Environment') {
             steps {
                 script {
-                      withCredentials([usernamePassword(credentialsId: 'ELASTIC_CREDENTIALS', passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
-                             // 读取相应环境的配置文件
-                             def config = readYaml file: "./target/classes/application-${params.ENVIRONMENT}.yml"
-                             echo "开始读取文件 ${"./target/classes/application-${params.ENVIRONMENT}.yml"}"
-                            // 输出读取到的内容
-                            echo "YAML Content: ${config}"
-                            // 读取项目名称，并赋值给环境变量 CONTAINER_NAME
-                            env.CONTAINER_NAME = config.spring.application.name ?: "default-container-name"
-                            echo "读取 CONTAINER_NAME: ${env.CONTAINER_NAME}"
 
-                            //项目端口号，也是镜像的端口号  从 application-xxx.yml文件中读取
-                            env.PORT_PLACEHOLDER = "${config.server.port}"
-                            echo "读取 PORT_PLACEHOLDER: ${env.PORT_PLACEHOLDER}"
+                    // 读取相应环境的配置文件
+                     def config = readYaml file: "./target/classes/application-${params.ENVIRONMENT}.yml"
+                     echo "开始读取文件 ${"./target/classes/application-${params.ENVIRONMENT}.yml"}"
+                    // 输出读取到的内容
+                    echo "YAML Content: ${config}"
+                    // 读取项目名称，并赋值给环境变量 CONTAINER_NAME
+                    env.CONTAINER_NAME = config.spring.application.name ?: "default-container-name"
+                    echo "读取 CONTAINER_NAME: ${env.CONTAINER_NAME}"
 
-                            //k8s nodeport端口号  从 application-xxx.yml文件中读取
-                            env.NODEPORTS_PLACEHOLDER = "${config.server.nodeport}"
-                            echo "读取 NODEPORTS_PLACEHOLDER: ${env.NODEPORTS_PLACEHOLDER}"
+                    //项目端口号，也是镜像的端口号  从 application-xxx.yml文件中读取
+                    env.PORT_PLACEHOLDER = "${config.server.port}"
+                    echo "读取 PORT_PLACEHOLDER: ${env.PORT_PLACEHOLDER}"
 
-                            // 动态设置 ES_HOST
-                            env.ES_HOST = "${config.elasticsearch?.scheme}://${config.elasticsearch?.host}:${config.elasticsearch?.port}"
-                            echo "Elasticsearch Host: ${env.ES_HOST}"
-                }
+                    //k8s nodeport端口号  从 application-xxx.yml文件中读取
+                    env.NODEPORTS_PLACEHOLDER = "${config.server.nodeport}"
+                    echo "读取 NODEPORTS_PLACEHOLDER: ${env.NODEPORTS_PLACEHOLDER}"
 
+                    // 动态设置 ES_HOST
+                    env.ES_HOST = "${config.elasticsearch?.scheme}://${config.elasticsearch?.host}:${config.elasticsearch?.port}"
+                    echo "Elasticsearch Host: ${env.ES_HOST}"
                 }
             }
         }
@@ -152,32 +150,33 @@ pipeline {
         stage('Check and Create Elasticsearch Indices') {
             steps {
                 script {
-                    def files = findFiles(glob: "${ES_BASE_DIR}**/create/*.json")
+                    withCredentials([usernamePassword(credentialsId: 'ELASTIC_CREDENTIALS', passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
+                        def files = findFiles(glob: "${ES_BASE_DIR}**/create/*.json")
+                        files.each { file ->
+                            // 去掉 .json 扩展名，得到索引名称
+                            def indexName = file.name.replace('.json', '')
+                            echo "Processing index: ${indexName}"
 
-                    files.each { file ->
-                        // 去掉 .json 扩展名，得到索引名称
-                        def indexName = file.name.replace('.json', '')
-                        echo "Processing index: ${indexName}"
+                           def checkIndexExists = sh(
+                               script: """
+                               curl -s "${env.ES_HOST}/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
+                               """,
+                               returnStatus: true
+                           )
+                           echo "checkIndexExists ======: ${checkIndexExists}"
+                           // 0 找到索引 1 没有找到索引
+                           if (checkIndexExists == 0) {
+                               echo "Index ${indexName} already exists. Skipping creation."
+                           } else {// 1 没有找到索引
+                               echo "Creating index: ${indexName}"
+                               def response = sh(script: """
+                               curl -X PUT "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
+                               """, returnStdout: true).trim()
 
-                       def checkIndexExists = sh(
-                           script: """
-                           curl -s "${env.ES_HOST}/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
-                           """,
-                           returnStatus: true
-                       )
-                       echo "checkIndexExists ======: ${checkIndexExists}"
-                       // 0 找到索引 1 没有找到索引
-                       if (checkIndexExists == 0) {
-                           echo "Index ${indexName} already exists. Skipping creation."
-                       } else {// 1 没有找到索引
-                           echo "Creating index: ${indexName}"
-                           def response = sh(script: """
-                           curl -X PUT "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
-                           """, returnStdout: true).trim()
+                               echo "Index creation response for ${indexName}: ${response}"
+                           }
 
-                           echo "Index creation response for ${indexName}: ${response}"
-                       }
-
+                        }
                     }
                 }
             }
@@ -186,36 +185,36 @@ pipeline {
        stage('Update Elasticsearch Mappings') {
            steps {
                script {
+                    withCredentials([usernamePassword(credentialsId: 'ELASTIC_CREDENTIALS', passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
+                        // 查找 update 文件夹下的所有 JSON 文件
+                        def files = findFiles(glob: "${ES_BASE_DIR}**/update/*.json")
 
-                    // 查找 update 文件夹下的所有 JSON 文件
-                    def files = findFiles(glob: "${ES_BASE_DIR}**/update/*.json")
+                        files.each { file ->
+                           // 根据文件名提取索引名称和更新名称
+                           def (indexName, updateName) = file.name.replace('.json', '').split('-')
+                           echo "Processing update for index: ${indexName} with update: ${updateName}"
+                           def checkIndexExists = sh(
+                               script: """
+                               curl -s "${env.ES_HOST}/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
+                               """,
+                               returnStatus: true
+                           )
+                           echo "checkIndexExists ======: ${checkIndexExists}"
+                           // 0 找到索引 1 没有找到索引
+                           if (checkIndexExists == 0) {
+                              // 索引存在，更新映射
+                              echo "Updating index: ${indexName} with file: ${file.name}"
+                              def response = sh(script: """
+                              curl -X PUT "${env.ES_HOST}/${indexName}/_mapping" -H 'Content-Type: application/json' -d @${file.path}
+                              """, returnStdout: true).trim()
+                              echo "Mapping update response for ${indexName}: ${response}"
+                           } else {
+                               // 索引不存在，输出提示信息并跳过更新
+                               echo "Index ${indexName} does not exist. Skipping mapping update."
+                           }
 
-                    files.each { file ->
-                       // 根据文件名提取索引名称和更新名称
-                       def (indexName, updateName) = file.name.replace('.json', '').split('-')
-                       echo "Processing update for index: ${indexName} with update: ${updateName}"
-                       def checkIndexExists = sh(
-                           script: """
-                           curl -s "${env.ES_HOST}/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
-                           """,
-                           returnStatus: true
-                       )
-                       echo "checkIndexExists ======: ${checkIndexExists}"
-                       // 0 找到索引 1 没有找到索引
-                       if (checkIndexExists == 0) {
-                          // 索引存在，更新映射
-                          echo "Updating index: ${indexName} with file: ${file.name}"
-                          def response = sh(script: """
-                          curl -X PUT "${env.ES_HOST}/${indexName}/_mapping" -H 'Content-Type: application/json' -d @${file.path}
-                          """, returnStdout: true).trim()
-                          echo "Mapping update response for ${indexName}: ${response}"
-                       } else {
-                           // 索引不存在，输出提示信息并跳过更新
-                           echo "Index ${indexName} does not exist. Skipping mapping update."
-                       }
-
+                        }
                     }
-
                }
            }
        }
