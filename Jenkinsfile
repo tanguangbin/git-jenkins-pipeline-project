@@ -150,7 +150,7 @@ pipeline {
         stage('Check and Create Elasticsearch Indices') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'ELASTIC_CREDENTIALS', passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
+                    withCredentials([usernamePassword(credentialsId: '${ELASTIC_CREDENTIALS}', passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
                         def files = findFiles(glob: "${ES_BASE_DIR}**/create/*.json")
                         files.each { file ->
                             // 去掉 .json 扩展名，得到索引名称
@@ -159,7 +159,7 @@ pipeline {
 
                            def checkIndexExists = sh(
                                script: """
-                               curl -s "${env.ES_HOST}/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
+                               curl -s -u ${ES_USERNAME}:${ES_PASSWORD} "${env.ES_HOST}/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
                                """,
                                returnStatus: true
                            )
@@ -170,7 +170,7 @@ pipeline {
                            } else {// 1 没有找到索引
                                echo "Creating index: ${indexName}"
                                def response = sh(script: """
-                               curl -X PUT "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
+                               curl -X PUT -u ${ES_USERNAME}:${ES_PASSWORD} "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
                                """, returnStdout: true).trim()
 
                                echo "Index creation response for ${indexName}: ${response}"
@@ -185,7 +185,7 @@ pipeline {
        stage('Update Elasticsearch Mappings') {
            steps {
                script {
-                    withCredentials([usernamePassword(credentialsId: 'ELASTIC_CREDENTIALS', passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
+                    withCredentials([usernamePassword(credentialsId: '${ELASTIC_CREDENTIALS}', passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
                         // 查找 update 文件夹下的所有 JSON 文件
                         def files = findFiles(glob: "${ES_BASE_DIR}**/update/*.json")
 
@@ -195,7 +195,7 @@ pipeline {
                            echo "Processing update for index: ${indexName} with update: ${updateName}"
                            def checkIndexExists = sh(
                                script: """
-                               curl -s "${env.ES_HOST}/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
+                               curl -s -u ${ES_USERNAME}:${ES_PASSWORD} "${env.ES_HOST}/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
                                """,
                                returnStatus: true
                            )
@@ -205,7 +205,7 @@ pipeline {
                               // 索引存在，更新映射
                               echo "Updating index: ${indexName} with file: ${file.name}"
                               def response = sh(script: """
-                              curl -X PUT "${env.ES_HOST}/${indexName}/_mapping" -H 'Content-Type: application/json' -d @${file.path}
+                              curl -X PUT -u ${ES_USERNAME}:${ES_PASSWORD} "${env.ES_HOST}/${indexName}/_mapping" -H 'Content-Type: application/json' -d @${file.path}
                               """, returnStdout: true).trim()
                               echo "Mapping update response for ${indexName}: ${response}"
                            } else {
