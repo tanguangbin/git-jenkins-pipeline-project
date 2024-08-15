@@ -154,32 +154,24 @@ pipeline {
                     def createFiles = findFiles(glob: "${ES_BASE_DIR}**/create/*.json")
 
                     createFiles.each { file ->
-                        // 去掉 .json 扩展名，得到索引名称
-                        def indexName = file.name.replace('.json', '')
-                        echo "Processing index: ${indexName}"
+                       def checkIndexExists = sh(
+                           script: """
+                           curl -s "${env.ES_HOST}/_cat/indices/${indexName}?h=index" | grep -w ${indexName}
+                           """,
+                           returnStatus: true
+                       )
 
-                        // 检查索引是否存在
-//                         def checkIndexExists = '400'
-                        def checkIndexExists = sh(
-                            script: """#!/bin/bash
-                            curl -s -o /dev/null -w "%{http_code}" -X HEAD --connect-timeout 5 ${env.ES_HOST}/${indexName}
-                            """,
-                            returnStdout: true
-                        ).trim()
+                       if (checkIndexExists == 0) {
+                           echo "Index ${indexName} already exists. Skipping creation."
+                       } else {
+                           echo "Creating index: ${indexName}"
+                           def response = sh(script: """
+                           curl -X PUT "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
+                           """, returnStdout: true).trim()
 
+                           echo "Index creation response for ${indexName}: ${response}"
+                       }
 
-                        if (checkIndexExists == '200') {
-                            // 索引已存在，输出提示信息
-                            echo "Index ${indexName} already exists. Skipping creation."
-                        } else {
-                            // 索引不存在，创建索引
-                            echo "Creating index: ${indexName}"
-                            def response = sh(script: """
-                            curl -X PUT "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
-                            """, returnStdout: true).trim()
-
-                            echo "Index creation response for ${indexName}: ${response}"
-                        }
                     }
                 }
             }
