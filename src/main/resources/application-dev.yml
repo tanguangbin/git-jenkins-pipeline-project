@@ -1,5 +1,9 @@
+spring:
+  application:
+    name: git-jenkins-test
 server:
   port: 8082
+  nodeport: 30011
 
 tangb: dev
 mybatis-plus:
@@ -10,11 +14,15 @@ mybatis-plus:
     db-config:
       id-type: auto
 
-es:
-  host: 192.168.0.10:9200
+elasticsearch:
+  host: 192.168.0.10
+  port: 9200
+  scheme: http
+  base-package: com.tangb.es.domains.po  # 替换为实际的包路径
 # spring:
 #   datasource:
 #     url: jdbc:mysql://localhost:3306/tan-vue-pro?rewriteBatchedStatements=true
 #     username: root
 #     password: 1234
 #     driver-class-name: com.mysql.cj.jdbc.Driver
+

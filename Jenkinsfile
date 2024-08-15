@@ -5,15 +5,15 @@ pipeline {
         /**
           * k8s相关变量
         */
-        //端口号
-        PORT_PLACEHOLDER='8081'
-        NODEPORTS_PLACEHOLDER='30011'
+        //端口号 从 application-xxx.yml文件中读取
+//         PORT_PLACEHOLDER='8081'
+//         NODEPORTS_PLACEHOLDER='30011'
         //traefik或 Nginx 负载地址
         LOADBALANCER_PLACEHOLDER='www.baidu.com'
         //docker镜像名称+版本号
         IMAGE_PLACEHOLDER="IMAGE_PLACEHOLDER"
-        //k8s或docker中应用的名称
-        CONTAINER_NAME = 'test-container'
+        //k8s或docker中应用的名称 从 application-xxx.yml文件中读取
+//         CONTAINER_NAME = 'test-container'
         // Kubernetes Deployment Template 文件路径
         // 用于存储 Kubernetes 部署的模板文件，在其中占位符会被替换为实际的 Docker 镜像标签
         K8S_TEMPLATE_NAME = 'k8s-deployment-template.yaml'
@@ -32,6 +32,9 @@ pipeline {
         /**
           * GIT相关变量
         */
+        //git地址
+        GIT_URL = "https://github.com/tanguangbin/"
+        GIT_PUSH_URL="github.com"
         // GitHub 用户名
         GIT_USER_NAME = "tanguangbin"
         // GitHub 凭据ID，用于认证推送
@@ -80,7 +83,32 @@ pipeline {
 //                     }
                     echo "当前选择的分支为： ${branch}  项目名为： ${GIT_REPO_NAME}.git"
 
-                    git branch: branch, url: "https://github.com/tanguangbin/${GIT_REPO_NAME}.git"
+                    git branch: branch, url: "${GIT_URL}/${GIT_REPO_NAME}.git"
+                }
+            }
+        }
+
+        stage('Setup ES Environment') {
+            steps {
+                script {
+
+                    // 读取相应环境的配置文件
+                     def config = readYaml file: "./target/classes/application-${params.ENVIRONMENT}.yml"
+
+                    //项目名称，也是镜像的名称  从 application-xxx.yml文件中读取
+                    env.CONTAINER_NAME = "${config.spring.application.name}"
+                    echo "读取 CONTAINER_NAME: ${env.CONTAINER_NAME}"
+                    //项目端口号，也是镜像的端口号  从 application-xxx.yml文件中读取
+                    env.PORT_PLACEHOLDER= "${config.server.port}"
+                    echo "读取 PORT_PLACEHOLDER: ${env.PORT_PLACEHOLDER}"
+
+                    //k8s nodeport端口号  从 application-xxx.yml文件中读取
+                    env.NODEPORTS_PLACEHOLDER "${config.server.nodeport}"
+                    echo "读取 NODEPORTS_PLACEHOLDER: ${env.PORT_PLACEHOLDER}"
+
+                    // 动态设置 ES_HOST
+                    env.ES_HOST = "${config.elasticsearch.scheme}//${config.elasticsearch.host}:${config.elasticsearch.port}"
+                    echo "Elasticsearch Host: ${env.ES_HOST}"
                 }
             }
         }
@@ -108,62 +136,81 @@ pipeline {
         //   }
         // }
 
-        stage('Setup ES Environment') {
+
+
+
+
+        stage('Check and Create Elasticsearch Indices') {
             steps {
                 script {
-                    // 读取相应环境的配置文件
-                    def config = readYaml file: "./target/classes/application-${params.ENVIRONMENT}.yml"
-
-                    // 动态设置 ES_HOST
-                    env.ES_HOST = "http://" + config.es.host
-                    echo "Elasticsearch Host: ${env.ES_HOST}"
-                }
-            }
-        }
-
-
-
-        stage('Create Elasticsearch Indices') {
-            steps {
-                script {
-//                     def basePath = "elasticsearch/${params.ENVIRONMENT}/"
-                    sh 'ls -al'
                     def basePath = "elasticsearch/"
                     def createFiles = findFiles(glob: "${basePath}**/create/*.json")
-                    echo "====================findFiles : ${createFiles}"
+
                     createFiles.each { file ->
-                        def indexName = file.path.split('/')[2]
-                        echo "Creating index: ${indexName}"
+                        // 去掉 .json 扩展名，得到索引名称
+                        def indexName = file.name.replace('.json', '')
+                        echo "Processing index: ${indexName}"
 
-                        def response = sh(script: """
-                        curl -X PUT "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
-                        """, returnStdout: true).trim()
+                        // 检查索引是否存在
+                        def checkIndexExists = sh(
+                            script: "curl -s -o /dev/null -w '%{http_code}' -X HEAD ${env.ES_HOST}/${indexName}",
+                            returnStdout: true
+                        ).trim()
 
-                        echo "Index creation response for ${indexName}: ${response}"
+                        if (checkIndexExists == '200') {
+                            // 索引已存在，输出提示信息
+                            echo "Index ${indexName} already exists. Skipping creation."
+                        } else {
+                            // 索引不存在，创建索引
+                            echo "Creating index: ${indexName}"
+                            def response = sh(script: """
+                            curl -X PUT "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
+                            """, returnStdout: true).trim()
+
+                            echo "Index creation response for ${indexName}: ${response}"
+                        }
                     }
                 }
             }
         }
 
-        stage('Update Elasticsearch Mappings') {
-            steps {
-                script {
-                    def basePath = "elasticsearch/${params.ENVIRONMENT}/"
+       stage('Update Elasticsearch Mappings') {
+           steps {
+               script {
+                   def basePath = "elasticsearch/${params.ENVIRONMENT}/"
 
-                    def updateFiles = findFiles(glob: "${basePath}*/update/*.json")
-                    updateFiles.each { file ->
-                        def indexName = file.path.split('/')[2]
-                        echo "Updating index: ${indexName} with file: ${file.name}"
+                   // 查找 update 文件夹下的所有 JSON 文件
+                   def updateFiles = findFiles(glob: "${basePath}*/update/*.json")
+                   updateFiles.each { file ->
+                       // 提取索引名称
+                       def indexName = file.path.split('/')[2]
+                       echo "Processing index: ${indexName}"
 
-                        def response = sh(script: """
-                        curl -X PUT "${env.ES_HOST}/${indexName}/_mapping" -H 'Content-Type: application/json' -d @${file.path}
-                        """, returnStdout: true).trim()
+                       // 检查索引是否存在
+                       def checkIndexExists = sh(
+                           script: "curl -s -o /dev/null -w '%{http_code}' -X HEAD ${env.ES_HOST}/${indexName}",
+                           returnStdout: true
+                       ).trim()
 
-                        echo "Mapping update response for ${indexName}: ${response}"
-                    }
-                }
-            }
-        }
+                       if (checkIndexExists == '200') {
+                           // 索引存在，更新映射
+                           echo "Updating index: ${indexName} with file: ${file.name}"
+
+                           def response = sh(script: """
+                           curl -X PUT "${env.ES_HOST}/${indexName}/_mapping" -H 'Content-Type: application/json' -d @${file.path}
+                           """, returnStdout: true).trim()
+
+                           echo "Mapping update response for ${indexName}: ${response}"
+                       } else {
+                           // 索引不存在，输出提示信息并跳过更新
+                           echo "Index ${indexName} does not exist. Skipping mapping update."
+                       }
+                   }
+               }
+           }
+       }
+
+
 
 
         stage('Build Docker Image') {
@@ -227,7 +274,7 @@ pipeline {
                         #IMAGE_PLACEHOLDER="IMAGE_PLACEHOLDER"
                         #CONTAINER_NAME
 
-                        sed 's|IMAGE_PLACEHOLDER|${imageName}|g; s|CONTAINER_NAME|${CONTAINER_NAME}|g; s|LOADBALANCER_PLACEHOLDER|${LOADBALANCER_PLACEHOLDER}|g; s|PORT_PLACEHOLDER|${PORT_PLACEHOLDER}|g; s|NODEPORTS_PLACEHOLDER|${NODEPORTS_PLACEHOLDER}|g; s|value: \"dev\"|value: \"${springProfile}\"|g' ${K8S_TEMPLATE_NAME} > ${K8S_DEPLOYMENT_NAME}
+                        sed 's|IMAGE_PLACEHOLDER|${imageName}|g; s|CONTAINER_NAME|${env.CONTAINER_NAME}|g; s|LOADBALANCER_PLACEHOLDER|${env.LOADBALANCER_PLACEHOLDER}|g; s|PORT_PLACEHOLDER|${env.PORT_PLACEHOLDER}|g; s|env.NODEPORTS_PLACEHOLDER|${env.NODEPORTS_PLACEHOLDER}|g; s|value: \"dev\"|value: \"${springProfile}\"|g' ${K8S_TEMPLATE_NAME} > ${K8S_DEPLOYMENT_NAME}
                         cat ${K8S_DEPLOYMENT_NAME}
                     """
                 }
@@ -268,7 +315,7 @@ pipeline {
                             # 提交 k8s-deployment.yaml 文件
                             git add ${K8S_DEPLOYMENT_NAME}
                             git commit -m "Temporary commit for deployment image to version ${BUILD_NUMBER}"
-                            git push -f https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} ${TEMP_BRANCH}
+                            git push -f https://${GITHUB_TOKEN}@${GIT_PUSH_URL}/${GIT_USER_NAME}/${GIT_REPO_NAME} ${TEMP_BRANCH}
 
                             # 返回原始分支
                             #git checkout ${params.ENVIRONMENT == 'prod' ? 'main' : params.ENVIRONMENT}
