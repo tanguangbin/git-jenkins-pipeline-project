@@ -1,19 +1,3 @@
-@Grab(group='org.elasticsearch.client', module='elasticsearch-rest-high-level-client', version='7.17.10')
-@Grab(group='org.elasticsearch', module='elasticsearch', version='7.17.10')
-@Grab(group='org.apache.httpcomponents.client5', module='httpclient5', version='5.0')
-
-import org.elasticsearch.client.RestClient
-import org.elasticsearch.client.RestHighLevelClient
-import org.elasticsearch.client.RequestOptions
-import org.elasticsearch.client.indices.CreateIndexRequest
-import org.elasticsearch.client.indices.GetIndexRequest
-import org.elasticsearch.client.indices.PutMappingRequest
-import org.elasticsearch.client.indices.CreateIndexResponse
-import org.elasticsearch.client.indices.PutMappingResponse
-import org.elasticsearch.common.settings.Settings
-import org.elasticsearch.common.xcontent.XContentType
-
-
 pipeline {
     environment {
         /**
@@ -151,79 +135,6 @@ pipeline {
             }
         }
 
-stage('Check and Create Elasticsearch Indices') {
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: ELASTIC_CREDENTIALS_ID, passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
-                        def client = new RestHighLevelClient(
-                            RestClient.builder(new HttpHost(env.ES_HOST, 9200, "http"))
-                        )
-
-                        def files = findFiles(glob: "${ES_BASE_DIR}**/create/*.json")
-                        files.each { file ->
-                            def indexName = file.name.replace('.json', '')
-                            echo "Processing index: ${indexName}"
-
-                            def getIndexRequest = new GetIndexRequest(indexName)
-                            def indexExists = client.indices().exists(getIndexRequest, RequestOptions.DEFAULT)
-
-                            if (indexExists) {
-                                echo "Index ${indexName} already exists. Skipping creation."
-                            } else {
-                                echo "Creating index: ${indexName}"
-                                def createIndexRequest = new CreateIndexRequest(indexName)
-                                createIndexRequest.settings(Settings.builder()
-                                    .put("index.number_of_shards", 3)
-                                    .put("index.number_of_replicas", 2)
-                                )
-                                createIndexRequest.mapping(new String(file.text), XContentType.JSON)
-
-                                def createIndexResponse = client.indices().create(createIndexRequest, RequestOptions.DEFAULT)
-                                echo "Index creation response for ${indexName}: ${createIndexResponse.index()}"
-                            }
-                        }
-
-                        client.close()
-                    }
-                }
-            }
-        }
-
-        stage('Update Elasticsearch Mappings') {
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: ELASTIC_CREDENTIALS_ID, passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
-                        def client = new RestHighLevelClient(
-                            RestClient.builder(new HttpHost(env.ES_HOST, 9200, "http"))
-                        )
-
-                        def files = findFiles(glob: "${ES_BASE_DIR}**/update/*.json")
-                        files.each { file ->
-                            def (indexName, updateName) = file.name.replace('.json', '').split('-')
-                            echo "Processing update for index: ${indexName} with update: ${updateName}"
-
-                            def getIndexRequest = new GetIndexRequest(indexName)
-                            def indexExists = client.indices().exists(getIndexRequest, RequestOptions.DEFAULT)
-
-                            if (indexExists) {
-                                echo "Updating index: ${indexName} with file: ${file.name}"
-                                def putMappingRequest = new PutMappingRequest(indexName)
-                                putMappingRequest.source(new String(file.text), XContentType.JSON)
-
-                                def putMappingResponse = client.indices().putMapping(putMappingRequest, RequestOptions.DEFAULT)
-                                echo "Mapping update response for ${indexName}: ${putMappingResponse.isAcknowledged()}"
-                            } else {
-                                echo "Index ${indexName} does not exist. Skipping mapping update."
-                            }
-                        }
-
-                        client.close()
-                    }
-                }
-            }
-        }
-
-
         // stage('Sonarqube Static Code Analysis') {
         //   environment {
         //     SONAR_URL = SONAR_URL
@@ -234,6 +145,89 @@ stage('Check and Create Elasticsearch Indices') {
         //     }
         //   }
         // }
+
+
+
+
+
+        stage('Check and Create Elasticsearch Indices') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: ELASTIC_CREDENTIALS_ID, passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
+                        def files = findFiles(glob: "${ES_BASE_DIR}**/create/*.json")
+                        files.each { file ->
+                           // 去掉 .json 扩展名，得到索引名称
+                           def indexName = file.name.replace('.json', '')
+                           echo "Processing index: ${indexName}"
+                           def esHost = "${env.ES_HOST}" // 使用局部变量代替全局环境变量
+                           def esAuth = "$ES_USERNAME:$ES_PASSWORD"
+                           def checkIndexExists = sh(
+                               script: """
+                               curl -s -u "$esAuth" "$esHost/_cat/indices/$indexName?h=index" | grep $indexName
+                               """,
+                               returnStatus: true
+                           )
+                           echo "checkIndexExists ======: ${checkIndexExists}"
+                           // 0 找到索引 1 没有找到索引
+                           if (checkIndexExists == 0) {
+                               echo "Index ${indexName} already exists. Skipping creation."
+                           } else {// 1 没有找到索引
+                               echo "Creating index: ${indexName}"
+                               def response = sh(script: """
+                               curl -X PUT -u "$esAuth" "$esHost/$indexName" -H 'Content-Type: application/json' -d @${file.path}
+                               """, returnStdout: true).trim()
+
+                               echo "Index creation response for ${indexName}: ${response}"
+                           }
+
+                        }
+                    }
+                }
+            }
+        }
+
+       stage('Update Elasticsearch Mappings') {
+           steps {
+               script {
+                    withCredentials([usernamePassword(credentialsId: ELASTIC_CREDENTIALS_ID, passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
+                        // 查找 update 文件夹下的所有 JSON 文件
+                        def files = findFiles(glob: "${ES_BASE_DIR}**/update/*.json")
+
+                        files.each { file ->
+                           // 根据文件名提取索引名称和更新名称
+                           def (indexName, updateName) = file.name.replace('.json', '').split('-')
+                           echo "Processing update for index: ${indexName} with update: ${updateName}"
+
+                           def esHost = "${env.ES_HOST}" // 使用局部变量代替全局环境变量
+                           def esAuth = "$ES_USERNAME:$ES_PASSWORD"
+
+                           def checkIndexExists = sh(
+                               script: """
+                               curl -s -u "$esAuth" "$esHost/_cat/indices/$indexName?h=index" | grep $indexName
+                               """,
+                               returnStatus: true
+                           )
+                           echo "checkIndexExists ======: ${checkIndexExists}"
+                           // 0 找到索引 1 没有找到索引
+                           if (checkIndexExists == 0) {
+                              // 索引存在，更新映射
+                              echo "Updating index: ${indexName} with file: ${file.name}"
+                              def response = sh(script: """
+                              curl -X PUT -u "$esAuth" "$esHost/$indexName/_mapping" -H 'Content-Type: application/json' -d @${file.path}
+                              """, returnStdout: true).trim()
+                              echo "Mapping update response for ${indexName}: ${response}"
+                           } else {
+                               // 索引不存在，输出提示信息并跳过更新
+                               echo "Index ${indexName} does not exist. Skipping mapping update."
+                           }
+
+                        }
+                    }
+               }
+           }
+       }
+
+
 
 
         stage('Build Docker Image') {
