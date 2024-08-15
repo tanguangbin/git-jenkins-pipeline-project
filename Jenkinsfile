@@ -160,23 +160,26 @@ pipeline {
                             def indexName = file.name.replace('.json', '')
                             echo "Processing index: ${indexName}"
 
-                           def checkIndexExists = sh(
-                               script: """
-                               curl -s -u "$ES_USERNAME:$ES_PASSWORD" "${env.ES_HOST}/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
-                               """,
-                               returnStatus: true
-                           )
-                           echo "checkIndexExists ======: ${checkIndexExists}"
-                           // 0 找到索引 1 没有找到索引
-                           if (checkIndexExists == 0) {
-                               echo "Index ${indexName} already exists. Skipping creation."
-                           } else {// 1 没有找到索引
-                               echo "Creating index: ${indexName}"
-                               def response = sh(script: """
-                               curl -X PUT -u "$ES_USERNAME:$ES_PASSWORD" "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
-                               """, returnStdout: true).trim()
+                           withEnv(["ES_HOST=${env.ES_HOST}", "ES_AUTH=$ES_USERNAME:$ES_PASSWORD"]) {
+                              def checkIndexExists = sh(
+                                  script: """
+                                  curl -s -u "$ES_AUTH" "${ES_HOST}/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
+                                  """,
+                                  returnStatus: true
+                              )
+                              echo "checkIndexExists ======: ${checkIndexExists}"
+                              // 0 找到索引 1 没有找到索引
+                              if (checkIndexExists == 0) {
+                                  echo "Index ${indexName} already exists. Skipping creation."
+                              } else {// 1 没有找到索引
+                                  echo "Creating index: ${indexName}"
+                                  def response = sh(script: """
+                                  curl -X PUT -u "$ES_AUTH" "${ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
+                                  """, returnStdout: true).trim()
 
-                               echo "Index creation response for ${indexName}: ${response}"
+                                  echo "Index creation response for ${indexName}: ${response}"
+                              }
+
                            }
 
                         }
@@ -196,26 +199,29 @@ pipeline {
                            // 根据文件名提取索引名称和更新名称
                            def (indexName, updateName) = file.name.replace('.json', '').split('-')
                            echo "Processing update for index: ${indexName} with update: ${updateName}"
-                           def checkIndexExists = sh(
-                               script: """
-                               curl -s -u "$ES_USERNAME:$ES_PASSWORD" "${env.ES_HOST}/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
-                               """,
-                               returnStatus: true
-                           )
-                           echo "checkIndexExists ======: ${checkIndexExists}"
-                           // 0 找到索引 1 没有找到索引
-                           if (checkIndexExists == 0) {
-                              // 索引存在，更新映射
-                              echo "Updating index: ${indexName} with file: ${file.name}"
-                              def response = sh(script: """
-                              curl -X PUT -u "$ES_USERNAME:$ES_PASSWORD" "${env.ES_HOST}/${indexName}/_mapping" -H 'Content-Type: application/json' -d @${file.path}
-                              """, returnStdout: true).trim()
-                              echo "Mapping update response for ${indexName}: ${response}"
-                           } else {
-                               // 索引不存在，输出提示信息并跳过更新
-                               echo "Index ${indexName} does not exist. Skipping mapping update."
-                           }
 
+                           withEnv(["ES_HOST=${env.ES_HOST}", "ES_AUTH=$ES_USERNAME:$ES_PASSWORD"]) {
+                                def checkIndexExists = sh(
+                                    script: """
+                                    curl -s -u "$ES_HOST" "${ES_HOST}/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
+                                    """,
+                                    returnStatus: true
+                                )
+                                echo "checkIndexExists ======: ${checkIndexExists}"
+                                // 0 找到索引 1 没有找到索引
+                                if (checkIndexExists == 0) {
+                                   // 索引存在，更新映射
+                                   echo "Updating index: ${indexName} with file: ${file.name}"
+                                   def response = sh(script: """
+                                   curl -X PUT -u "$ES_HOST" "${ES_HOST}/${indexName}/_mapping" -H 'Content-Type: application/json' -d @${file.path}
+                                   """, returnStdout: true).trim()
+                                   echo "Mapping update response for ${indexName}: ${response}"
+                                } else {
+                                    // 索引不存在，输出提示信息并跳过更新
+                                    echo "Index ${indexName} does not exist. Skipping mapping update."
+                                }
+
+                           }
                         }
                     }
                }
