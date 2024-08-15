@@ -159,11 +159,14 @@ pipeline {
                         echo "Processing index: ${indexName}"
 
                         // 检查索引是否存在
-                        def checkIndexExists = '400'
-//                         def checkIndexExists = sh(
-//                             script: "curl -s -o /dev/null -w '%{http_code}' -X HEAD ${env.ES_HOST}/${indexName}",
-//                             returnStdout: true
-//                         ).trim()
+//                         def checkIndexExists = '400'
+                        def checkIndexExists = sh(
+                            script: """#!/bin/bash
+                            curl -s -o /dev/null -w "%{http_code}" -X HEAD --connect-timeout 5 ${env.ES_HOST}/${indexName}
+                            """,
+                            returnStdout: true
+                        ).trim()
+
 
                         if (checkIndexExists == '200') {
                             // 索引已存在，输出提示信息
@@ -281,7 +284,7 @@ pipeline {
                         #IMAGE_PLACEHOLDER="IMAGE_PLACEHOLDER"
                         #CONTAINER_NAME
 
-                        sed 's|IMAGE_PLACEHOLDER|${imageName}|g; s|CONTAINER_NAME|${env.CONTAINER_NAME}|g; s|LOADBALANCER_PLACEHOLDER|${env.LOADBALANCER_PLACEHOLDER}|g; s|PORT_PLACEHOLDER|${env.PORT_PLACEHOLDER}|g; s|env.NODEPORTS_PLACEHOLDER|${env.NODEPORTS_PLACEHOLDER}|g; s|value: \"dev\"|value: \"${springProfile}\"|g' ${K8S_TEMPLATE_NAME} > ${K8S_DEPLOYMENT_NAME}
+                        sed 's|IMAGE_PLACEHOLDER|${imageName}|g; s|CONTAINER_NAME|${env.CONTAINER_NAME}|g; s|LOADBALANCER_PLACEHOLDER|${env.LOADBALANCER_PLACEHOLDER}|g; s|PORT_PLACEHOLDER|${env.PORT_PLACEHOLDER}|g; s|NODEPORTS_PLACEHOLDER|${env.NODEPORTS_PLACEHOLDER}|g; s|value: \"dev\"|value: \"${springProfile}\"|g' ${K8S_TEMPLATE_NAME} > ${K8S_DEPLOYMENT_NAME}
                         cat ${K8S_DEPLOYMENT_NAME}
                     """
                 }
