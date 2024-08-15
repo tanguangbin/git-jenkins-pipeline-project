@@ -154,6 +154,10 @@ pipeline {
                     def createFiles = findFiles(glob: "${ES_BASE_DIR}**/create/*.json")
 
                     createFiles.each { file ->
+                        // 去掉 .json 扩展名，得到索引名称
+                        def indexName = file.name.replace('.json', '')
+                        echo "Processing index: ${indexName}"
+
                        def checkIndexExists = sh(
                            script: """
                            curl -s "${env.ES_HOST}/_cat/indices/${indexName}?h=index" | grep -w ${indexName}
