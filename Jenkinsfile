@@ -200,8 +200,8 @@ pipeline {
                            returnStatus: true
                        )
                        echo "checkIndexExists ======: ${checkIndexExists}"
-                       //0 没有找到索引 1 为有索引
-                       if (checkIndexExists == 1) {
+                       // 0 找到索引 1 没有找到索引
+                       if (checkIndexExists == 0) {
                           // 索引存在，更新映射
                           echo "Updating index: ${indexName} with file: ${file.name}"
                           def response = sh(script: """
