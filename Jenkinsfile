@@ -52,14 +52,13 @@ pipeline {
         //构建 Docker 镜像，并更新 Kubernetes 配置文件。特别地，将 k8s-deployment.yaml 文件的更新提交到临时分支
         //ARGO-CD-FETCH-BRANCH，该分支专门供 Argo CD 使用，以便部署到 Kubernetes 集群中。这种做法避免了对开发主分支的干扰。
         TEMP_BRANCH="ARGO-CD-FETCH-BRANCH"
-
-
         TRIVY_REPORT_PATH = 'trivy-report.json'  // Trivy 报告文件路径
 
         /**
          * elasticsearch 配置
         */
         ES_BASE_DIR = "elasticsearch"
+        ELASTIC_CREDENTIALS = "ELASTIC_CREDENTIALS"
 
     }
 
@@ -108,27 +107,29 @@ pipeline {
         stage('Setup ES Environment') {
             steps {
                 script {
+                      withCredentials([usernamePassword(credentialsId: 'ELASTIC_CREDENTIALS', passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
+                             // 读取相应环境的配置文件
+                             def config = readYaml file: "./target/classes/application-${params.ENVIRONMENT}.yml"
+                             echo "开始读取文件 ${"./target/classes/application-${params.ENVIRONMENT}.yml"}"
+                            // 输出读取到的内容
+                            echo "YAML Content: ${config}"
+                            // 读取项目名称，并赋值给环境变量 CONTAINER_NAME
+                            env.CONTAINER_NAME = config.spring.application.name ?: "default-container-name"
+                            echo "读取 CONTAINER_NAME: ${env.CONTAINER_NAME}"
 
-                    // 读取相应环境的配置文件
-                     def config = readYaml file: "./target/classes/application-${params.ENVIRONMENT}.yml"
-                     echo "开始读取文件 ${"./target/classes/application-${params.ENVIRONMENT}.yml"}"
-                    // 输出读取到的内容
-                    echo "YAML Content: ${config}"
-                    // 读取项目名称，并赋值给环境变量 CONTAINER_NAME
-                    env.CONTAINER_NAME = config.spring.application.name ?: "default-container-name"
-                    echo "读取 CONTAINER_NAME: ${env.CONTAINER_NAME}"
+                            //项目端口号，也是镜像的端口号  从 application-xxx.yml文件中读取
+                            env.PORT_PLACEHOLDER = "${config.server.port}"
+                            echo "读取 PORT_PLACEHOLDER: ${env.PORT_PLACEHOLDER}"
 
-                    //项目端口号，也是镜像的端口号  从 application-xxx.yml文件中读取
-                    env.PORT_PLACEHOLDER = "${config.server.port}"
-                    echo "读取 PORT_PLACEHOLDER: ${env.PORT_PLACEHOLDER}"
+                            //k8s nodeport端口号  从 application-xxx.yml文件中读取
+                            env.NODEPORTS_PLACEHOLDER = "${config.server.nodeport}"
+                            echo "读取 NODEPORTS_PLACEHOLDER: ${env.NODEPORTS_PLACEHOLDER}"
 
-                    //k8s nodeport端口号  从 application-xxx.yml文件中读取
-                    env.NODEPORTS_PLACEHOLDER = "${config.server.nodeport}"
-                    echo "读取 NODEPORTS_PLACEHOLDER: ${env.NODEPORTS_PLACEHOLDER}"
+                            // 动态设置 ES_HOST
+                            env.ES_HOST = "${config.elasticsearch?.scheme}://${config.elasticsearch?.host}:${config.elasticsearch?.port}"
+                            echo "Elasticsearch Host: ${env.ES_HOST}"
+                }
 
-                    // 动态设置 ES_HOST
-                    env.ES_HOST = "${config.elasticsearch?.scheme}://${config.elasticsearch?.host}:${config.elasticsearch?.port}"
-                    echo "Elasticsearch Host: ${env.ES_HOST}"
                 }
             }
         }
