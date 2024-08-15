@@ -1,0 +1,15 @@
+{
+  "properties": {
+    "address": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "text"
+        },
+        "url": {
+          "type": "text"
+        }
+      }
+    }
+  }
+}

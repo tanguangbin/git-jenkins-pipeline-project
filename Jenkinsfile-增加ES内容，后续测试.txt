@@ -1,0 +1,185 @@
+pipeline {
+    environment {
+        // 其他环境变量
+        K8S_TEMPLATE_NAME = 'k8s-deployment-template.yaml'
+        K8S_DEPLOYMENT_NAME = 'k8s-deployment.yaml'
+    }
+
+    agent any
+
+    parameters {
+        choice(name: 'ENVIRONMENT', choices: ['dev', 'test', 'prod'], description: '选择部署的环境')
+    }
+
+    tools {
+        maven 'mvn' // 指定Maven的安装名称
+    }
+
+    stages {
+        stage('Setup Environment') {
+            steps {
+                script {
+                    // 读取相应环境的配置文件
+                    def config = readYaml file: "config/${params.ENVIRONMENT}.yml"
+                    
+                    // 动态设置 ES_HOST
+                    env.ES_HOST = config.es.host
+                    echo "Elasticsearch Host: ${env.ES_HOST}"
+                }
+            }
+        }
+
+        stage('Clone Repository') {
+            steps {
+                script {
+                    def branch = params.ENVIRONMENT == 'prod' ? 'main' : params.ENVIRONMENT
+                    git branch: branch, url: "https://github.com/tanguangbin/${GIT_REPO_NAME}.git"
+                }
+            }
+        }
+
+        stage('Build with Maven') {
+            steps {
+                script {
+                    def profile = params.ENVIRONMENT
+                    sh "mvn clean package -P${profile}"
+                }
+            }
+        }
+
+        stage('Create Elasticsearch Indices') {
+            steps {
+                script {
+                    def basePath = "elasticsearch/${params.ENVIRONMENT}/"
+
+                    def createFiles = findFiles(glob: "${basePath}*/create/*.json")
+                    createFiles.each { file ->
+                        def indexName = file.path.split('/')[2]
+                        echo "Creating index: ${indexName}"
+
+                        def response = sh(script: """
+                        curl -X PUT "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
+                        """, returnStdout: true).trim()
+
+                        echo "Index creation response for ${indexName}: ${response}"
+                    }
+                }
+            }
+        }
+
+        stage('Update Elasticsearch Mappings') {
+            steps {
+                script {
+                    def basePath = "elasticsearch/${params.ENVIRONMENT}/"
+
+                    def updateFiles = findFiles(glob: "${basePath}*/update/*.json")
+                    updateFiles.each { file ->
+                        def indexName = file.path.split('/')[2]
+                        echo "Updating index: ${indexName} with file: ${file.name}"
+
+                        def response = sh(script: """
+                        curl -X PUT "${env.ES_HOST}/${indexName}/_mapping" -H 'Content-Type: application/json' -d @${file.path}
+                        """, returnStdout: true).trim()
+
+                        echo "Mapping update response for ${indexName}: ${response}"
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    env.DOCKER_IMAGE_NAME = "${REGISTRY}-${params.ENVIRONMENT}:${env.BUILD_NUMBER}"
+                    DOCKER_IMAGE = docker.build("${env.DOCKER_IMAGE_NAME}")
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('', REGISTRY_CREDENTIAL) {
+                        DOCKER_IMAGE.push()
+                    }
+                }
+            }
+        }
+
+        stage('Remove Unused Docker Image') {
+            steps {
+                sh "docker rmi ${env.DOCKER_IMAGE_NAME}"
+            }
+        }
+
+        stage('Update k8s YAML') {
+            steps {
+                script {
+                    def imageName = "${env.DOCKER_IMAGE_NAME}"
+                    def springProfile = params.ENVIRONMENT
+                    sh """
+                        sed 's|IMAGE_PLACEHOLDER|${imageName}|g; s|CONTAINER_NAME|${CONTAINER_NAME}|g; s|LOADBALANCER_PLACEHOLDER|${LOADBALANCER_PLACEHOLDER}|g; s|PORT_PLACEHOLDER|${PORT_PLACEHOLDER}|g; s|NODEPORTS_PLACEHOLDER|${NODEPORTS_PLACEHOLDER}|g; s|value: \"dev\"|value: \"${springProfile}\"|g' ${K8S_TEMPLATE_NAME} > ${K8S_DEPLOYMENT_NAME}
+                        cat ${K8S_DEPLOYMENT_NAME}
+                    """
+                }
+            }
+        }
+
+        stage('Update Deployment File') {
+            steps {
+                withCredentials([string(credentialsId: "${GITHUB_CREDENTIALS_ID}", variable: 'GITHUB_TOKEN')]) {
+                    script {
+                        sh '''
+                            git config user.email "${GIT_USER_EMAIL}"
+                            git config user.name "${GIT_USERNAME}"
+
+                            git fetch origin
+                            git branch -D ${TEMP_BRANCH} || echo "No local branch ${TEMP_BRANCH} to delete"
+
+                            if [ -f "${K8S_DEPLOYMENT_NAME}" ]; then
+                                mv ${K8S_DEPLOYMENT_NAME} ${K8S_DEPLOYMENT_NAME}.backup
+                            fi
+
+                            git checkout -b ${TEMP_BRANCH} origin/lite
+
+                            if [ -f "${K8S_DEPLOYMENT_NAME}.backup" ]; then
+                                mv ${K8S_DEPLOYMENT_NAME}.backup ${K8S_DEPLOYMENT_NAME}
+                            fi
+
+                            git add ${K8S_DEPLOYMENT_NAME}
+                            git commit -m "Temporary commit for deployment image to version ${BUILD_NUMBER}"
+                            git push -f https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} ${TEMP_BRANCH}
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Run Docker Container for Testing') {
+            steps {
+                script {
+                    def dockerImageTag = "${env.DOCKER_IMAGE_NAME}"
+
+                    sh "docker rm -f ${CONTAINER_NAME} || true"
+
+                    sh """
+                    docker run --name ${CONTAINER_NAME} -d \
+                        -e SPRING_PROFILES_ACTIVE=${params.ENVIRONMENT} \
+                        -e SERVER_PORT=${PORT_PLACEHOLDER} \
+                        -p ${PORT_PLACEHOLDER}:${PORT_PLACEHOLDER} \
+                        ${dockerImageTag}
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed.'
+        }
+    }
+}

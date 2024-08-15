@@ -107,6 +107,62 @@ pipeline {
         //   }
         // }
 
+        stage('Setup ES Environment') {
+            steps {
+                script {
+                    // 读取相应环境的配置文件
+                    def config = readYaml file: "application-${params.ENVIRONMENT}.yml"
+
+                    // 动态设置 ES_HOST
+                    env.ES_HOST = config.es.host
+                    echo "Elasticsearch Host: ${env.ES_HOST}"
+                }
+            }
+        }
+
+
+
+        stage('Create Elasticsearch Indices') {
+            steps {
+                script {
+//                     def basePath = "elasticsearch/${params.ENVIRONMENT}/"
+                    def basePath = "elasticsearch/"
+                    def createFiles = findFiles(glob: "${basePath}*/create/*.json")
+                    createFiles.each { file ->
+                        def indexName = file.path.split('/')[2]
+                        echo "Creating index: ${indexName}"
+
+                        def response = sh(script: """
+                        curl -X PUT "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
+                        """, returnStdout: true).trim()
+
+                        echo "Index creation response for ${indexName}: ${response}"
+                    }
+                }
+            }
+        }
+
+        stage('Update Elasticsearch Mappings') {
+            steps {
+                script {
+                    def basePath = "elasticsearch/${params.ENVIRONMENT}/"
+
+                    def updateFiles = findFiles(glob: "${basePath}*/update/*.json")
+                    updateFiles.each { file ->
+                        def indexName = file.path.split('/')[2]
+                        echo "Updating index: ${indexName} with file: ${file.name}"
+
+                        def response = sh(script: """
+                        curl -X PUT "${env.ES_HOST}/${indexName}/_mapping" -H 'Content-Type: application/json' -d @${file.path}
+                        """, returnStdout: true).trim()
+
+                        echo "Mapping update response for ${indexName}: ${response}"
+                    }
+                }
+            }
+        }
+
+
         stage('Build Docker Image') {
             steps {
                 script {
@@ -136,15 +192,15 @@ pipeline {
 //             }
 //         }
 
-        stage('Push Docker Image') {
-            steps {
-                script {
-                    docker.withRegistry('', REGISTRY_CREDENTIAL) {
-                        DOCKER_IMAGE.push()
-                    }
-                }
-            }
-        }
+//         stage('Push Docker Image') {
+//             steps {
+//                 script {
+//                     docker.withRegistry('', REGISTRY_CREDENTIAL) {
+//                         DOCKER_IMAGE.push()
+//                     }
+//                 }
+//             }
+//         }
 
         stage('Remove Unused Docker Image') {
             steps {
