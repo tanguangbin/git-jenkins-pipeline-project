@@ -99,18 +99,18 @@ pipeline {
                     echo "YAML Content: ${config}"
 
                     //项目名称，也是镜像的名称  从 application-xxx.yml文件中读取
-                    env.CONTAINER_NAME = "${config.spring.application.name}"
+                    env.CONTAINER_NAME = "${config.spring?.application?.name}"
                     echo "读取 CONTAINER_NAME: ${env.CONTAINER_NAME}"
                     //项目端口号，也是镜像的端口号  从 application-xxx.yml文件中读取
-                    env.PORT_PLACEHOLDER= "${config.server.port}"
+                    env.PORT_PLACEHOLDER= "${config.server?.port}"
                     echo "读取 PORT_PLACEHOLDER: ${env.PORT_PLACEHOLDER}"
 
                     //k8s nodeport端口号  从 application-xxx.yml文件中读取
-                    env.NODEPORTS_PLACEHOLDER "${config.server.nodeport}"
+                    env.NODEPORTS_PLACEHOLDER "${config.server?.nodeport}"
                     echo "读取 NODEPORTS_PLACEHOLDER: ${env.PORT_PLACEHOLDER}"
 
                     // 动态设置 ES_HOST
-                    env.ES_HOST = "${config.elasticsearch.scheme}//${config.elasticsearch.host}:${config.elasticsearch.port}"
+                    env.ES_HOST = "${config.elasticsearch?.scheme}//${config.elasticsearch?.host}:${config.elasticsearch?.port}"
                     echo "Elasticsearch Host: ${env.ES_HOST}"
                 }
             }
