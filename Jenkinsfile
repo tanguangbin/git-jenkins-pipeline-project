@@ -163,7 +163,7 @@ pipeline {
                            def esAuth = "$ES_USERNAME:$ES_PASSWORD"
                            def checkIndexExists = sh(
                                script: """
-                               curl -s -u "$esHost" "$esAuth/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
+                               curl -s -u "$esAuth" "$esHost/_cat/indices/$indexName?h=index" | grep $indexName
                                """,
                                returnStatus: true
                            )
@@ -174,7 +174,7 @@ pipeline {
                            } else {// 1 没有找到索引
                                echo "Creating index: ${indexName}"
                                def response = sh(script: """
-                               curl -X PUT -u "$esHost" "$esAuth/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
+                               curl -X PUT -u "$esAuth" "$esHost/$indexName" -H 'Content-Type: application/json' -d @${file.path}
                                """, returnStdout: true).trim()
 
                                echo "Index creation response for ${indexName}: ${response}"
@@ -203,7 +203,7 @@ pipeline {
 
                            def checkIndexExists = sh(
                                script: """
-                               curl -s -u "$esHost" "$esHost/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
+                               curl -s -u "$esAuth" "$esHost/_cat/indices/$indexName?h=index" | grep $indexName
                                """,
                                returnStatus: true
                            )
@@ -213,7 +213,7 @@ pipeline {
                               // 索引存在，更新映射
                               echo "Updating index: ${indexName} with file: ${file.name}"
                               def response = sh(script: """
-                              curl -X PUT -u "$esHost" "$esHost/${indexName}/_mapping" -H 'Content-Type: application/json' -d @${file.path}
+                              curl -X PUT -u "$esAuth" "$esHost/$indexName/_mapping" -H 'Content-Type: application/json' -d @${file.path}
                               """, returnStdout: true).trim()
                               echo "Mapping update response for ${indexName}: ${response}"
                            } else {
