@@ -97,10 +97,10 @@ pipeline {
                      echo "开始读取文件 ${"./target/classes/application-${params.ENVIRONMENT}.yml"}"
                     // 输出读取到的内容
                     echo "YAML Content: ${config}"
-
-                    //项目名称，也是镜像的名称  从 application-xxx.yml文件中读取
-                    env.CONTAINER_NAME = "${config.spring?.application?.name}"
+                    // 读取项目名称，并赋值给环境变量 CONTAINER_NAME
+                    env.CONTAINER_NAME = config.spring.application.name ?: "default-container-name"
                     echo "读取 CONTAINER_NAME: ${env.CONTAINER_NAME}"
+
                     //项目端口号，也是镜像的端口号  从 application-xxx.yml文件中读取
                     env.PORT_PLACEHOLDER= "${config.server?.port}"
                     echo "读取 PORT_PLACEHOLDER: ${env.PORT_PLACEHOLDER}"

@@ -1,11 +1,13 @@
 spring:
   application:
     name: git-jenkins-test
+
 server:
   port: 8082
   nodeport: 30011
 
 tangb: dev
+
 mybatis-plus:
   configuration:
 #    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
