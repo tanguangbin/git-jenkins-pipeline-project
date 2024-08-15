@@ -150,7 +150,7 @@ pipeline {
         stage('Check and Create Elasticsearch Indices') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: '${ELASTIC_CREDENTIALS}', passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
+                    withCredentials([usernamePassword(credentialsId: ELASTIC_CREDENTIALS, passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
                         def files = findFiles(glob: "${ES_BASE_DIR}**/create/*.json")
                         files.each { file ->
                             // 去掉 .json 扩展名，得到索引名称
@@ -185,7 +185,7 @@ pipeline {
        stage('Update Elasticsearch Mappings') {
            steps {
                script {
-                    withCredentials([usernamePassword(credentialsId: '${ELASTIC_CREDENTIALS}', passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
+                    withCredentials([usernamePassword(credentialsId: ELASTIC_CREDENTIALS, passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
                         // 查找 update 文件夹下的所有 JSON 文件
                         def files = findFiles(glob: "${ES_BASE_DIR}**/update/*.json")
 
