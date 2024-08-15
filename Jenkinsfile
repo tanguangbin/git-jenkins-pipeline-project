@@ -1,18 +1,16 @@
 pipeline {
     environment {
-
-
         /**
           * k8s相关变量
         */
-        //端口号 从 application-xxx.yml文件中读取
+        //端口号 自动从 application-xxx.yml文件中读取
 //         PORT_PLACEHOLDER='8081'
 //         NODEPORTS_PLACEHOLDER='30011'
         //traefik或 Nginx 负载地址
         LOADBALANCER_PLACEHOLDER='www.baidu.com'
         //docker镜像名称+版本号
         IMAGE_PLACEHOLDER="IMAGE_PLACEHOLDER"
-        //k8s或docker中应用的名称 从 application-xxx.yml文件中读取
+        //k8s或docker中应用的名称 自动从 application-xxx.yml文件中读取
 //         CONTAINER_NAME = 'test-container'
         // Kubernetes Deployment Template 文件路径
         // 用于存储 Kubernetes 部署的模板文件，在其中占位符会被替换为实际的 Docker 镜像标签
@@ -25,7 +23,7 @@ pipeline {
         // Docker 镜像仓库地址
         REGISTRY = 'tanguangbin1980/test'
         // Docker 仓库凭据ID
-        REGISTRY_CREDENTIAL = 'dockerhub'
+        DOCKER_REGISTRY_CREDENTIAL_ID = 'dockerhub'
         // Docker 镜像名称变量（动态生成）
         DOCKER_IMAGE = ''
 
@@ -58,8 +56,13 @@ pipeline {
          * elasticsearch 配置
         */
         ES_BASE_DIR = "elasticsearch"
-        ELASTIC_CREDENTIALS = "ELASTIC_CREDENTIALS"
+        ELASTIC_CREDENTIALS_ID = "ELASTIC_CREDENTIALS"
 
+
+        /**
+        * SONAR 配置
+        */
+        SONAR_URL = "http://34.201.116.83:9000"
     }
 
     agent any
@@ -134,7 +137,7 @@ pipeline {
 
         // stage('Sonarqube Static Code Analysis') {
         //   environment {
-        //     SONAR_URL = "http://34.201.116.83:9000"
+        //     SONAR_URL = SONAR_URL
         //   }
         //   steps {
         //     withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
@@ -150,7 +153,7 @@ pipeline {
         stage('Check and Create Elasticsearch Indices') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: ELASTIC_CREDENTIALS, passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
+                    withCredentials([usernamePassword(credentialsId: ELASTIC_CREDENTIALS_ID, passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
                         def files = findFiles(glob: "${ES_BASE_DIR}**/create/*.json")
                         files.each { file ->
                             // 去掉 .json 扩展名，得到索引名称
@@ -159,7 +162,7 @@ pipeline {
 
                            def checkIndexExists = sh(
                                script: """
-                               curl -s -u ${ES_USERNAME}:${ES_PASSWORD} "${env.ES_HOST}/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
+                               curl -s -u "$ES_USERNAME:$ES_PASSWORD" "${env.ES_HOST}/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
                                """,
                                returnStatus: true
                            )
@@ -170,7 +173,7 @@ pipeline {
                            } else {// 1 没有找到索引
                                echo "Creating index: ${indexName}"
                                def response = sh(script: """
-                               curl -X PUT -u ${ES_USERNAME}:${ES_PASSWORD} "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
+                               curl -X PUT -u "$ES_USERNAME:$ES_PASSWORD" "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
                                """, returnStdout: true).trim()
 
                                echo "Index creation response for ${indexName}: ${response}"
@@ -185,7 +188,7 @@ pipeline {
        stage('Update Elasticsearch Mappings') {
            steps {
                script {
-                    withCredentials([usernamePassword(credentialsId: ELASTIC_CREDENTIALS, passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
+                    withCredentials([usernamePassword(credentialsId: ELASTIC_CREDENTIALS_ID, passwordVariable: 'ES_PASSWORD', usernameVariable: 'ES_USERNAME')]) {
                         // 查找 update 文件夹下的所有 JSON 文件
                         def files = findFiles(glob: "${ES_BASE_DIR}**/update/*.json")
 
@@ -195,7 +198,7 @@ pipeline {
                            echo "Processing update for index: ${indexName} with update: ${updateName}"
                            def checkIndexExists = sh(
                                script: """
-                               curl -s -u ${ES_USERNAME}:${ES_PASSWORD} "${env.ES_HOST}/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
+                               curl -s -u "$ES_USERNAME:$ES_PASSWORD" "${env.ES_HOST}/_cluster/state?filter_path=metadata.indices.${indexName}" | grep ${indexName}
                                """,
                                returnStatus: true
                            )
@@ -205,7 +208,7 @@ pipeline {
                               // 索引存在，更新映射
                               echo "Updating index: ${indexName} with file: ${file.name}"
                               def response = sh(script: """
-                              curl -X PUT -u ${ES_USERNAME}:${ES_PASSWORD} "${env.ES_HOST}/${indexName}/_mapping" -H 'Content-Type: application/json' -d @${file.path}
+                              curl -X PUT -u "$ES_USERNAME:$ES_PASSWORD" "${env.ES_HOST}/${indexName}/_mapping" -H 'Content-Type: application/json' -d @${file.path}
                               """, returnStdout: true).trim()
                               echo "Mapping update response for ${indexName}: ${response}"
                            } else {
@@ -254,7 +257,7 @@ pipeline {
 //         stage('Push Docker Image') {
 //             steps {
 //                 script {
-//                     docker.withRegistry('', REGISTRY_CREDENTIAL) {
+//                     docker.withRegistry('', DOCKER_REGISTRY_CREDENTIAL_ID) {
 //                         DOCKER_IMAGE.push()
 //                     }
 //                 }
@@ -361,63 +364,5 @@ pipeline {
 //                 }
 //             }
 //         }
-
-
-//         stage('Update Deployment File') {
-//             steps {
-//                 withCredentials([string(credentialsId: "${GITHUB_CREDENTIALS_ID}", variable: 'GITHUB_TOKEN')]) {
-//                     sh """
-//                         git config user.email "test@gmail.com"
-//                         git config user.name "Andy Tan"
-//
-//                          # 强制添加被忽略的文件
-//                          # 由于 k8s-deployment.yaml 文件在构建过程中被自动生成且可能每次构建都会改变，
-//                          # 将其添加到 .gitignore 中避免手动冲突。但有时我们仍然需要将它推送到远程仓库，
-//                          # 因此这里使用 git add -f 强制添加此文件。
-//                          #git add -f k8s-deployment.yaml
-//                          #git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-//                          #git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:${params.ENVIRONMENT}
-//
-//                         # 检查临时分支是否存在并切换
-//                         if git rev-parse --verify ${TEMP_BRANCH}; then
-//                             #echo "Switching to existing branch ${TEMP_BRANCH}"
-//                             #git stash
-//                             #git checkout ${TEMP_BRANCH}
-//                             #git stash pop
-//                             #产出docker中本地的git分支，避免k8s-deployment.yaml冲突
-//                             git branch -D ${TEMP_BRANCH}
-//                             echo "wait for 2 second for deleting local TEMP_BRANCH"
-//                             sleep 2
-//
-//                         #else
-//                         #    echo "Creating new branch ${TEMP_BRANCH}"
-//                         #    git checkout -b ${TEMP_BRANCH}
-//                         fi
-//
-//
-//                         # 等待 5 秒
-//
-//                         git checkout -b ${TEMP_BRANCH}
-//                         #git pull
-//                         echo "wait for 5 second for checkout new TEMP_BRANCH"
-//                         sleep 5
-//                         # 提交临时文件
-//                         git add ${K8S_DEPLOYMENT_NAME}
-//                         git commit -m "Temporary commit for deployment image to version ${BUILD_NUMBER}"
-//                         git push -f https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} $TEMP_BRANCH
-//
-//                         #产出docker中本地的git分支，避免冲突
-//                         #git branch -D ${TEMP_BRANCH}
-//
-//                         # 如果需要 返回原始分支
-//                         # 根据选择的环境动态选择分支
-//                         #def branch = params.ENVIRONMENT == 'prod' ? 'main' : params.ENVIRONMENT
-//                         #git checkout branch
-//
-//                     """
-//                 }
-//             }
-//         }
-
     }
 }
