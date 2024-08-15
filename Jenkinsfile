@@ -164,16 +164,17 @@ pipeline {
                            """,
                            returnStatus: true
                        )
+                       echo "checkIndexExists =======  ${checkIndexExists}"
 
-                       if (checkIndexExists == 0) {
-                           echo "Index ${indexName} already exists. Skipping creation."
+                       if (checkIndexExists == "not_found" || checkIndexExists == "") {
+                        echo "Index ${indexName} does not exist. Creating index."
+                        def response = sh(script: """
+                        curl -X PUT "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
+                        """, returnStdout: true).trim()
+
+                        echo "Index creation response for ${indexName}: ${response}"
                        } else {
-                           echo "Creating index: ${indexName}"
-                           def response = sh(script: """
-                           curl -X PUT "${env.ES_HOST}/${indexName}" -H 'Content-Type: application/json' -d @${file.path}
-                           """, returnStdout: true).trim()
-
-                           echo "Index creation response for ${indexName}: ${response}"
+                         echo "Index ${indexName} already exists. Skipping creation."
                        }
 
                     }
