@@ -127,7 +127,7 @@ pipeline {
                     echo "读取 NODEPORTS_PLACEHOLDER: ${env.NODEPORTS_PLACEHOLDER}"
 
                     // 动态设置 ES_HOST
-                    env.ES_HOST = "${config.elasticsearch?.scheme}//${config.elasticsearch?.host}:${config.elasticsearch?.port}"
+                    env.ES_HOST = "${config.elasticsearch?.scheme}://${config.elasticsearch?.host}:${config.elasticsearch?.port}"
                     echo "Elasticsearch Host: ${env.ES_HOST}"
                 }
             }
