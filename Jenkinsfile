@@ -112,10 +112,10 @@ pipeline {
             steps {
                 script {
                     // 读取相应环境的配置文件
-                    def config = readYaml file: "application-${params.ENVIRONMENT}.yml"
+                    def config = readYaml file: "./target/classes/application-${params.ENVIRONMENT}.yml"
 
                     // 动态设置 ES_HOST
-                    env.ES_HOST = config.es.host
+                    env.ES_HOST = "http://" + config.es.host
                     echo "Elasticsearch Host: ${env.ES_HOST}"
                 }
             }
