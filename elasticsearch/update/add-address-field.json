@@ -1,5 +1,8 @@
 {
   "properties": {
+    "new_col": {
+      "type": "keyword"
+    },
     "address": {
       "type": "object",
       "properties": {
