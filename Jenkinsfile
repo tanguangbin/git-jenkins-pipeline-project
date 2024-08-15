@@ -94,6 +94,8 @@ pipeline {
 
                     // 读取相应环境的配置文件
                      def config = readYaml file: "./target/classes/application-${params.ENVIRONMENT}.yml"
+                    // 输出读取到的内容
+                    echo "YAML Content: ${config}"
 
                     //项目名称，也是镜像的名称  从 application-xxx.yml文件中读取
                     env.CONTAINER_NAME = "${config.spring.application.name}"
