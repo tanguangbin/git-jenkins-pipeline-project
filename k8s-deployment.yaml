@@ -1,21 +1,52 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: your-app-deployment
+  name: null-deployment
   labels:
-    app: your-app
+    app: null
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: your-app
+      app: null
   template:
     metadata:
       labels:
-        app: your-app
+        app: null
     spec:
       containers:
-        - name: your-app
-          image: tanguangbin1980/test:84
-          ports:
-            - containerPort: 8080
+        - name: null
+          image: tanguangbin1980/test-dev:3  # 这里会被 Jenkins 替换为实际的镜像名称       
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "dev"  # 默认设置为 dev，可以在 Jenkinsfile 中动态修改
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: null-service
+spec:
+  type: NodePort
+  ports:
+    - port: null  # Service 的端口
+      targetPort: null  # 容器中的端口
+      nodePort: null  # 在每个 Node 上的端口（30000-32767）
+  selector:
+    app: null
+---
+
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: null-ingressroute
+  namespace: default
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`www.baidu.com`)
+      kind: Rule
+      services:
+        - name: null-service
+          port: null
